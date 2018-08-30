@@ -1,0 +1,35 @@
+@startuml
+title Floodlight Kilda execution thread work diagram (old)
+
+participant "FL::Consumer" as Consumer
+collections "FL::RecordHandler" as RecordHandler
+participant "FL::SwitchManager" as SwitchManager
+collections Switch
+control "Kafka topic" as Kafka
+
+Consumer -> RecordHandler: Execute command in worker thread
+
+== Execution thread ==
+
+activate RecordHandler
+
+alt Fast commands
+    RecordHandler -> SwitchManager : Send OFMessage(s)
+    SwitchManager -> RecordHandler : Result
+    SwitchManager <-> Switch : Async Send OFMessage(s)
+end
+
+alt Long commands
+    RecordHandler -> SwitchManager : Send OFBarrier request
+    activate SwitchManager
+    SwitchManager -> Switch : Send OFBarrier request
+    SwitchManager -> SwitchManager : Blocks until response
+    Switch -> SwitchManager : Send OFBarrier response
+    SwitchManager -> RecordHandler : OFBarrier response
+    deactivate SwitchManager
+end
+
+RecordHandler -> Kafka : Send a reply
+deactivate RecordHandler
+destroy RecordHandler
+@enduml

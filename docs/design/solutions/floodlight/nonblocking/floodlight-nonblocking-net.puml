@@ -1,0 +1,93 @@
+@startuml
+title Floodlight Kilda threading diagram
+
+control kilda.speaker
+participant "FL::KafkaMessageCollector" as KafkaMessageCollector
+participant "FL::Consumer" as Consumer
+participant Semaphore
+collections "FL::RecordHandler" as RecordHandler
+participant "Execution Threads" as Executor
+participant "FL::SwitchManager" as SwitchManager
+collections Switch
+control kilda.flow
+participant "FL::PathVerificationService" as PathVerificationService
+control kilda.topo.disco
+
+create Consumer
+KafkaMessageCollector -> Consumer : Start the reactor thread
+
+== Reactor thread ==
+
+loop forever, a single thread
+    Consumer -> kilda.speaker : Poll messages
+    activate Consumer
+    kilda.speaker -> Consumer : A batch of messages
+    loop for each message
+        create RecordHandler
+        deactivate RecordHandler
+        Consumer -> RecordHandler : Build a message handler
+
+        group Schedule execution of the handler
+            Consumer -> Semaphore : Semaphore enter
+            alt No free execution slots
+                 Semaphore -> Semaphore
+                note right: Now the reactor waits \nfor an execution slot to be allocated\n before processing of the next message.
+            end
+            Consumer -> Executor : Schedule on the execution threadpool
+        end
+
+        Consumer -> kilda.speaker: Commit the offset for a message
+    end
+    Consumer -> SwitchManager : safeModeTick
+
+    activate SwitchManager
+    alt Safe switches exists
+        loop For each new switch
+            SwitchManager -> Executor : Schedule safe rule application
+            note left: The same logic as in\n"Schedule execution of the handler"
+        end
+     end
+
+    deactivate SwitchManager
+    deactivate Consumer
+end
+
+== Execution threads ==
+
+Executor -> RecordHandler : Executing a handler
+activate Executor
+activate RecordHandler
+
+alt A flow command
+    RecordHandler -> SwitchManager : Send OFMessage(s)
+    RecordHandler -> SwitchManager : Send OFBarrier request
+    activate SwitchManager
+
+    SwitchManager -> Switch : OFBarrier request
+    Switch -> SwitchManager: OFBarrier response callback
+    ...Yeld execution thread while waiting a callback...
+    SwitchManager -> RecordHandler : OFBarrier response
+
+    deactivate SwitchManager
+    RecordHandler -> kilda.flow : Send a reply
+else A discovery command
+    RecordHandler -> Switch: LLDP Packet
+else An error occurred
+    RecordHandler -> kilda.flow : Send an error message
+end
+
+RecordHandler -> Semaphore : Semaphore leave
+deactivate RecordHandler
+deactivate Executor
+destroy RecordHandler
+
+== Discovery messages from switches ==
+
+loop for each discovered ISL
+    Switch -> PathVerificationService : LLDP Packet
+    activate PathVerificationService
+    PathVerificationService -> kilda.topo.disco : ISL discovered message
+    deactivate PathVerificationService
+end
+
+@enduml

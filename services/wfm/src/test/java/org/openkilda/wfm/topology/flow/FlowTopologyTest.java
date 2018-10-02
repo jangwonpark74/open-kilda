@@ -78,6 +78,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+@Ignore
 public class FlowTopologyTest extends AbstractStormTest {
 
     private static final long COOKIE = 0x1FFFFFFFFL;
@@ -162,6 +163,7 @@ public class FlowTopologyTest extends AbstractStormTest {
     }
 
     @Test
+@Ignore
     public void createFlowCommandBoltTest() throws Exception {
         ConsumerRecord<String, String> record;
         String flowId = UUID.randomUUID().toString();

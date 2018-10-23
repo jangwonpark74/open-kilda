@@ -27,6 +27,7 @@ import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFMeterConfig;
 import org.projectfloodlight.openflow.protocol.OFPortDesc;
 import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
 
 import java.net.InetAddress;
@@ -209,7 +210,14 @@ public interface ISwitchManager extends IFloodlightService {
 
     Map<DatapathId, IOFSwitch> getAllSwitchMap();
 
-    IOFSwitch lookupSwitch(DatapathId dpid) throws SwitchNotFoundException;
+    /**
+     * Wrap IOFSwitchService.getSwitch call to check protect from null return value.
+     *
+     * @param  dpId switch identifier
+     * @return open flow switch descriptor
+     * @throws SwitchNotFoundException switch operation exception
+     */
+    IOFSwitch lookupSwitch(DatapathId dpId) throws SwitchNotFoundException;
 
     /**
      * Get the IP address from a switch.
@@ -278,6 +286,14 @@ public interface ISwitchManager extends IFloodlightService {
      * @throws SwitchOperationException Switch not found.
      */
     List<OFPortDesc> dumpPortsDescription(DatapathId dpid) throws SwitchOperationException;
+
+    /**
+     * Create a MAC address based on the DPID.
+     *
+     * @param dpId switch object
+     * @return {@link MacAddress}
+     */
+    MacAddress dpIdToMac(final DatapathId dpId);
 
     /**
      * Return true if port is physical.

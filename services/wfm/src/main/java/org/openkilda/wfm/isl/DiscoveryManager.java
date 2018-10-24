@@ -17,7 +17,9 @@ package org.openkilda.wfm.isl;
 
 import org.openkilda.messaging.model.DiscoveryLink;
 import org.openkilda.messaging.model.NetworkEndpoint;
+import org.openkilda.messaging.model.Switch;
 import org.openkilda.messaging.model.SwitchId;
+import org.openkilda.messaging.model.SwitchPort;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections4.CollectionUtils;
@@ -254,32 +256,6 @@ public class DiscoveryManager {
     }
 
     /**
-     * Handle activated switch.
-     *
-     * @param switchId id of the switch.
-     */
-    public void handleSwitchUp(SwitchId switchId) {
-        logger.info("Register switch {} into ISL discovery manager", switchId);
-        // TODO: this method *use to not* do anything .. but it should register the switch.
-        //          At least, it seems like it should do something to register a switch, even
-        //          though this can be lazily done when the first port event arrives.
-
-        /*
-         * If a switch comes up, clear any "isFoundIsl" flags, in case something has changed,
-         * and/or if the TE has cleared it's state .. this will pass along the ISL.
-         */
-        Set<DiscoveryLink> subjectList = findAllBySwitch(switchId);
-
-        if (!subjectList.isEmpty()) {
-            logger.info("Received SWITCH UP (id:{}) with EXISTING NODES. Clearing up counters for active ports",
-                    switchId);
-            subjectList.stream()
-                .filter(link -> link.getState().isActive())
-                .forEach(DiscoveryLink::resetState);
-        }
-    }
-
-    /**
      * Handle port up event.
      */
     public void handlePortUp(SwitchId switchId, int portId) {
@@ -294,6 +270,27 @@ public class DiscoveryManager {
             link.resetState();
         } else {
             logger.info("Port UP on new NetworkEndpoint: {}", link.getSource());
+        }
+    }
+
+    /**
+     * Register switch.
+     *
+     * @param switchRecord switch's discovery data
+     */
+    public void registerSwitch(Switch switchRecord) {
+        SwitchId datapath = switchRecord.getDatapath();
+        logger.info("Register switch {} into ISL discovery manager", datapath);
+
+        for (SwitchPort port : switchRecord.getPorts()) {
+            if (port.getState() == SwitchPort.State.UP) {
+                logger.info("Switch {} ADD: port {} - {}: add to discovery(reset fail counters)",
+                            datapath, port.getNumber(), port.getState());
+                registerPort(datapath, port.getNumber())
+                        .resetState();
+            } else {
+                logger.info("Switch {} ADD: port {} - {}", datapath, port.getNumber(), port.getState());
+            }
         }
     }
 
@@ -334,17 +331,6 @@ public class DiscoveryManager {
         }
 
         removeFromDiscovery(node);
-    }
-
-    /**
-     * Finds all discovery links for specific switch dpid.
-     *
-     * @param dpid datapath id of the switch.
-     * @return list of {@link DiscoveryLink}.
-     */
-    @VisibleForTesting
-    Set<DiscoveryLink> findAllBySwitch(SwitchId dpid) {
-        return linksBySwitch.getOrDefault(dpid, Collections.emptySet());
     }
 
     /**

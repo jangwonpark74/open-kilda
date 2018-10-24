@@ -17,6 +17,7 @@ package org.openkilda.floodlight.converter;
 
 import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.messaging.info.event.SwitchState;
+import org.openkilda.messaging.model.Switch;
 import org.openkilda.messaging.model.SwitchId;
 
 import net.floodlightcontroller.core.IOFSwitch;
@@ -36,7 +37,7 @@ public final class IofSwitchConverter {
      * @param eventType switch state.
      * @return converted switch.
      */
-    public static SwitchInfoData buildSwitchInfoData(IOFSwitch sw, SwitchState eventType) {
+    public static SwitchInfoData buildSwitchInfoData(IOFSwitch sw, Switch switchRecord, SwitchState eventType) {
         SwitchId switchId = new SwitchId(sw.getId().getLong());
         InetSocketAddress address = (InetSocketAddress) sw.getInetAddress();
         InetSocketAddress controller = (InetSocketAddress) sw.getConnectionByCategory(
@@ -53,7 +54,8 @@ public final class IofSwitchConverter {
                         sw.getSwitchDescription().getManufacturerDescription(),
                         sw.getOFFactory().getVersion().toString(),
                         sw.getSwitchDescription().getSoftwareDescription()),
-                controller.getHostString());
+                controller.getHostString(),
+                switchRecord);
     }
 
     private IofSwitchConverter() {

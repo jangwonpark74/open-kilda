@@ -61,18 +61,17 @@ public class SwitchOperationsBolt extends NeoOperationsBolt {
                 + "sw.state as state");
         List<SwitchInfoData> results = new ArrayList<>();
         for (Record record : result.list()) {
-            SwitchInfoData sw = new SwitchInfoData();
-            sw.setSwitchId(new SwitchId(record.get("name").asString()));
-            sw.setAddress(record.get("address").asString());
-            sw.setController(record.get("controller").asString());
-            sw.setDescription(record.get("description").asString());
-            sw.setHostname(record.get("hostname").asString());
-
             String status = record.get("state").asString();
             SwitchState st = "active".equals(status) ? SwitchState.ACTIVATED : SwitchState.DEACTIVATED;
-            sw.setState(st);
 
-            results.add(sw);
+            results.add(SwitchInfoData.builder()
+                    .switchId(new SwitchId(record.get("name").asString()))
+                    .state(st)
+                    .address(record.get("address").asString())
+                    .controller(record.get("controller").asString())
+                    .description(record.get("description").asString())
+                    .hostname(record.get("hostname").asString())
+                    .build());
         }
         log.debug("Found switches: {}", results.size());
 

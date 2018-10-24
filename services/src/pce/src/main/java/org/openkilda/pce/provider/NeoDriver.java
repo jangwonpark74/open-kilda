@@ -257,17 +257,17 @@ public class NeoDriver implements PathComputer {
     }
 
     private SwitchInfoData toSwitchInfoData(Entity entity) {
-        SwitchInfoData sw = new SwitchInfoData();
-        sw.setAddress(entity.get("address").asString());
-        sw.setController(entity.get("controller").asString());
-        sw.setDescription(entity.get("description").asString());
-        sw.setHostname(entity.get("hostname").asString());
         String status = entity.get("state").asString();
         SwitchState st = ("active".equals(status)) ? SwitchState.ACTIVATED : SwitchState.CACHED;
-        sw.setState(st);
 
-        sw.setSwitchId(new SwitchId(entity.get("name").asString()));
-        return sw;
+        return SwitchInfoData.builder()
+                .switchId(new SwitchId(entity.get("name").asString()))
+                .state(st)
+                .address(entity.get("address").asString())
+                .controller(entity.get("controller").asString())
+                .description(entity.get("description").asString())
+                .hostname(entity.get("hostname").asString())
+                .build();
     }
 
     @Override

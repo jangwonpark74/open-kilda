@@ -137,7 +137,6 @@ public class CacheTopologyTest extends AbstractStormTest {
 
     @Before
     public void init() throws Exception {
-        sw.setState(SwitchState.ADDED);
         flowConsumer.clear();
         teConsumer.clear();
         ctrlConsumer.clear();

@@ -17,8 +17,8 @@ package org.openkilda.floodlight.test.standard;
 
 import static java.util.Collections.singletonList;
 import static org.openkilda.floodlight.pathverification.PathVerificationService.VERIFICATION_BCAST_PACKET_DST;
-import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_RULE_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.FLOW_COOKIE_MASK;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.FLOW_RULE_PRIORITY;
 import static org.openkilda.messaging.Utils.ETH_TYPE;
 import static org.projectfloodlight.openflow.protocol.OFMeterFlags.BURST;
 import static org.projectfloodlight.openflow.protocol.OFMeterFlags.KBPS;
@@ -85,7 +85,7 @@ public interface OutputCommands {
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_RULE_PRIORITY)
+                .setPriority(FLOW_RULE_PRIORITY)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(transitVlan))
@@ -109,7 +109,7 @@ public interface OutputCommands {
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_RULE_PRIORITY)
+                .setPriority(FLOW_RULE_PRIORITY)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(inputVlan))
@@ -138,7 +138,7 @@ public interface OutputCommands {
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_RULE_PRIORITY)
+                .setPriority(FLOW_RULE_PRIORITY)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .build())
@@ -161,7 +161,7 @@ public interface OutputCommands {
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_RULE_PRIORITY)
+                .setPriority(FLOW_RULE_PRIORITY)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(inputVlan))
@@ -186,7 +186,7 @@ public interface OutputCommands {
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_RULE_PRIORITY)
+                .setPriority(FLOW_RULE_PRIORITY)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .build())

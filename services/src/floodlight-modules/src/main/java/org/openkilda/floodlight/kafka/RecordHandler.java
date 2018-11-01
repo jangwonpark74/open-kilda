@@ -18,13 +18,19 @@ package org.openkilda.floodlight.kafka;
 import static java.util.Arrays.asList;
 import static org.openkilda.messaging.Utils.MAPPER;
 
+import org.openkilda.floodlight.command.Command;
 import org.openkilda.floodlight.command.CommandContext;
-import org.openkilda.floodlight.command.ping.PingRequestCommand;
 import org.openkilda.floodlight.converter.OfFlowStatsConverter;
 import org.openkilda.floodlight.converter.OfPortDescConverter;
 import org.openkilda.floodlight.error.FlowCommandException;
 import org.openkilda.floodlight.error.SwitchNotFoundException;
 import org.openkilda.floodlight.error.SwitchOperationException;
+import org.openkilda.floodlight.kafka.dispatcher.CommandDispatcher;
+import org.openkilda.floodlight.kafka.dispatcher.PingRequestDispatcher;
+import org.openkilda.floodlight.kafka.dispatcher.RemoveBfdSessionDispatcher;
+import org.openkilda.floodlight.kafka.dispatcher.RemoveBfdCatchDispatcher;
+import org.openkilda.floodlight.kafka.dispatcher.SetupBfdSessionDispatcher;
+import org.openkilda.floodlight.kafka.dispatcher.SetupBfdCatchDispatcher;
 import org.openkilda.floodlight.service.CommandProcessorService;
 import org.openkilda.floodlight.service.kafka.IKafkaProducerService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
@@ -62,7 +68,6 @@ import org.openkilda.messaging.error.ErrorData;
 import org.openkilda.messaging.error.ErrorMessage;
 import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.error.rule.DumpRulesErrorData;
-import org.openkilda.messaging.floodlight.request.PingRequest;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.discovery.DiscoPacketSendingConfirmation;
 import org.openkilda.messaging.info.event.PortChangeType;
@@ -80,6 +85,7 @@ import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.messaging.model.SwitchId;
 import org.openkilda.messaging.payload.flow.OutputVlanType;
 
+import com.google.common.collect.ImmutableList;
 import net.floodlightcontroller.core.IOFSwitch;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
@@ -101,14 +107,16 @@ class RecordHandler implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(RecordHandler.class);
 
     private final ConsumerContext context;
+    private final List<CommandDispatcher<?>> dispatchers;
     private final ConsumerRecord<String, String> record;
     private final MeterPool meterPool;
 
     private final CommandProcessorService commandProcessor;
 
-    public RecordHandler(ConsumerContext context, ConsumerRecord<String, String> record,
-                         MeterPool meterPool) {
+    public RecordHandler(ConsumerContext context, List<CommandDispatcher<?>> dispatchers,
+                         ConsumerRecord<String, String> record, MeterPool meterPool) {
         this.context = context;
+        this.dispatchers = dispatchers;
         this.record = record;
         this.meterPool = meterPool;
 
@@ -142,12 +150,9 @@ class RecordHandler implements Runnable {
     private void handleCommand(CommandMessage message, String replyToTopic, Destination replyDestination)
             throws FlowCommandException, SwitchOperationException {
         CommandData data = message.getData();
-        CommandContext context = new CommandContext(this.context.getModuleContext(), message.getCorrelationId());
 
         if (data instanceof DiscoverIslCommandData) {
             doDiscoverIslCommand(message);
-        } else if (data instanceof PingRequest) {
-            doPingRequest(context, (PingRequest) data);
         } else if (data instanceof DiscoverPathCommandData) {
             doDiscoverPathCommand(data);
         } else if (data instanceof InstallIngressFlow) {
@@ -206,11 +211,6 @@ class RecordHandler implements Runnable {
                 new NetworkEndpoint(command.getSwitchId(), command.getPortNumber()));
         getKafkaProducer().sendMessageAndTrack(context.getKafkaTopoDiscoTopic(),
                 new InfoMessage(confirmation, System.currentTimeMillis(), message.getCorrelationId()));
-    }
-
-    private void doPingRequest(CommandContext context, PingRequest request) {
-        PingRequestCommand command = new PingRequestCommand(context, request.getPing());
-        commandProcessor.process(command);
     }
 
     private void doDiscoverPathCommand(CommandData data) {
@@ -838,7 +838,9 @@ class RecordHandler implements Runnable {
 
         // Process the message within the message correlation context.
         try (CorrelationContextClosable closable = CorrelationContext.create(message.getCorrelationId())) {
-            doControllerMsg(message);
+            if (!dispatch(message)) {
+                doControllerMsg(message);
+            }
         } catch (Exception exception) {
             logger.error("error processing message={}", message, exception);
         }
@@ -849,6 +851,23 @@ class RecordHandler implements Runnable {
         parseRecord(record);
     }
 
+    private boolean dispatch(CommandMessage message) {
+        CommandContext commandContext = new CommandContext(context.getModuleContext(), message.getCorrelationId());
+        CommandData payload = message.getData();
+
+        for (CommandDispatcher<?> entry : dispatchers) {
+            Optional<Command> command = entry.dispatch(commandContext, payload);
+            if (!command.isPresent()) {
+                continue;
+            }
+
+            commandProcessor.process(command.get());
+            return true;
+        }
+
+        return false;
+    }
+
     private IKafkaProducerService getKafkaProducer() {
         return context.getModuleContext().getServiceImpl(IKafkaProducerService.class);
     }
@@ -856,13 +875,19 @@ class RecordHandler implements Runnable {
     public static class Factory {
         private final ConsumerContext context;
         private final MeterPool meterPool = new MeterPool();
+        private final List<CommandDispatcher<?>> dispatchers = ImmutableList.of(
+                new PingRequestDispatcher(),
+                new SetupBfdSessionDispatcher(),
+                new RemoveBfdSessionDispatcher(),
+                new SetupBfdCatchDispatcher(),
+                new RemoveBfdCatchDispatcher());
 
         public Factory(ConsumerContext context) {
             this.context = context;
         }
 
         public RecordHandler produce(ConsumerRecord<String, String> record) {
-            return new RecordHandler(context, record, meterPool);
+            return new RecordHandler(context, dispatchers, record, meterPool);
         }
     }
 }

@@ -104,6 +104,8 @@ import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -131,11 +133,10 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
      * Cookie IDs when creating a flow.
      */
     public static final long FLOW_COOKIE_MASK = 0x7FFFFFFFFFFFFFFFL;
-    private static final long DEFAULT_RULES_MASK = 0x8000000000000000L;
 
     public static final int VERIFICATION_RULE_PRIORITY = FlowModUtils.PRIORITY_MAX - 1000;
     public static final int DROP_VERIFICATION_LOOP_RULE_PRIORITY = VERIFICATION_RULE_PRIORITY + 1;
-    public static final int DEFAULT_RULE_PRIORITY = FlowModUtils.PRIORITY_HIGH;
+    public static final int FLOW_RULE_PRIORITY = FlowModUtils.PRIORITY_HIGH;
 
 
     // This is invalid VID mask - it cut of highest bit that indicate presence of VLAN tag on package. But valid mask
@@ -360,7 +361,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         // build FLOW_MOD command with meter
         OFFlowMod flowMod = buildFlowMod(ofFactory, match, meter, actions,
-                cookie & FLOW_COOKIE_MASK, DEFAULT_RULE_PRIORITY);
+                                         cookie & FLOW_COOKIE_MASK, FLOW_RULE_PRIORITY);
 
         return pushFlow(sw, "--InstallIngressFlow--", flowMod);
     }
@@ -392,7 +393,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         // build FLOW_MOD command, no meter
         OFFlowMod flowMod = buildFlowMod(ofFactory, match, null, actions,
-                cookie & FLOW_COOKIE_MASK, DEFAULT_RULE_PRIORITY);
+                                         cookie & FLOW_COOKIE_MASK, FLOW_RULE_PRIORITY);
 
         return pushFlow(sw, "--InstallEgressFlow--", flowMod);
     }
@@ -420,7 +421,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         // build FLOW_MOD command, no meter
         OFFlowMod flowMod = buildFlowMod(ofFactory, match, null, actions,
-                cookie & FLOW_COOKIE_MASK, DEFAULT_RULE_PRIORITY);
+                                         cookie & FLOW_COOKIE_MASK, FLOW_RULE_PRIORITY);
 
         return pushFlow(sw, flowId, flowMod);
     }
@@ -461,7 +462,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         // build FLOW_MOD command with meter
         OFFlowMod flowMod = buildFlowMod(ofFactory, match, meter, actions,
-                cookie & FLOW_COOKIE_MASK, DEFAULT_RULE_PRIORITY);
+                                         cookie & FLOW_COOKIE_MASK, FLOW_RULE_PRIORITY);
 
         pushFlow(sw, flowId, flowMod);
 
@@ -1271,6 +1272,14 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         return sw;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public InetAddress getSwitchIpAddress(IOFSwitch sw) {
+        return ((InetSocketAddress) sw.getInetAddress()).getAddress();
+    }
+
     @Override
     public List<OFPortDesc> getEnabledPhysicalPorts(DatapathId dpId) throws SwitchNotFoundException {
         return getPhysicalPorts(dpId).stream()
@@ -1596,6 +1605,6 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     }
 
     private boolean isDefaultRule(long cookie) {
-        return (cookie & DEFAULT_RULES_MASK) != 0L;
+        return (cookie & COOKIE_FLAG_SERVICE) != 0L;
     }
 }

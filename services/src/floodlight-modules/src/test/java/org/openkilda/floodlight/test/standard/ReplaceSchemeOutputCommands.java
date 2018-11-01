@@ -16,8 +16,8 @@
 package org.openkilda.floodlight.test.standard;
 
 import static java.util.Collections.singletonList;
-import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_RULE_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.FLOW_COOKIE_MASK;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.FLOW_RULE_PRIORITY;
 
 import net.floodlightcontroller.util.FlowModUtils;
 import org.projectfloodlight.openflow.protocol.OFFlowAdd;
@@ -38,7 +38,7 @@ public class ReplaceSchemeOutputCommands extends PushSchemeOutputCommands {
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_RULE_PRIORITY)
+                .setPriority(FLOW_RULE_PRIORITY)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(inputVlan))
@@ -69,7 +69,7 @@ public class ReplaceSchemeOutputCommands extends PushSchemeOutputCommands {
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_RULE_PRIORITY)
+                .setPriority(FLOW_RULE_PRIORITY)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(transitVlan))

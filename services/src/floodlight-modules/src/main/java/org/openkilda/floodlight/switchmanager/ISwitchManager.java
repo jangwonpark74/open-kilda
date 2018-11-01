@@ -29,6 +29,7 @@ import org.projectfloodlight.openflow.protocol.OFPortDesc;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.OFPort;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 
@@ -37,10 +38,13 @@ public interface ISwitchManager extends IFloodlightService {
     /** OVS software switch manufacturer constant value. */
     String OVS_MANUFACTURER = "Nicira, Inc.";
 
-    long DROP_RULE_COOKIE = 0x8000000000000001L;
-    long VERIFICATION_BROADCAST_RULE_COOKIE = 0x8000000000000002L;
-    long VERIFICATION_UNICAST_RULE_COOKIE = 0x8000000000000003L;
-    long DROP_VERIFICATION_LOOP_RULE_COOKIE = 0x8000000000000004L;
+    long COOKIE_FLAG_SERVICE = 0x8000000000000000L;
+    long COOKIE_FLAG_BFD_CATCH = 0x0001000000000001L;
+
+    long DROP_RULE_COOKIE = COOKIE_FLAG_SERVICE | 1L;
+    long VERIFICATION_BROADCAST_RULE_COOKIE = COOKIE_FLAG_SERVICE | 2L;
+    long VERIFICATION_UNICAST_RULE_COOKIE = COOKIE_FLAG_SERVICE | 3L;
+    long DROP_VERIFICATION_LOOP_RULE_COOKIE = COOKIE_FLAG_SERVICE | 4L;
 
     void activate(DatapathId dpid) throws SwitchOperationException;
 
@@ -206,6 +210,14 @@ public interface ISwitchManager extends IFloodlightService {
     Map<DatapathId, IOFSwitch> getAllSwitchMap();
 
     IOFSwitch lookupSwitch(DatapathId dpid) throws SwitchNotFoundException;
+
+    /**
+     * Get the IP address from a switch.
+     *
+     * @param sw target switch object
+     * @return switch's IP address
+     */
+    InetAddress getSwitchIpAddress(IOFSwitch sw);
 
     List<OFPortDesc> getEnabledPhysicalPorts(DatapathId dpid) throws SwitchNotFoundException;
 

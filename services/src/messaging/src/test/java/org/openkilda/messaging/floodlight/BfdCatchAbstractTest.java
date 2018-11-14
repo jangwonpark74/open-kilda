@@ -13,9 +13,10 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.floodlight.request;
+package org.openkilda.messaging.floodlight;
 
-import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.messaging.JsonSerializeAbstractTest;
+import org.openkilda.messaging.model.NoviBfdCatch;
 import org.openkilda.messaging.model.Switch;
 import org.openkilda.messaging.model.SwitchId;
 
@@ -25,10 +26,9 @@ import com.google.common.collect.ImmutableSet;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 
-public abstract class BfdInitiatorAbstractTest extends BfdAbstractTest<NoviBfdSession> {
-    @Override
-    protected NoviBfdSession makePayload() throws UnknownHostException {
-        return new NoviBfdSession(
+public abstract class BfdCatchAbstractTest extends JsonSerializeAbstractTest {
+    protected NoviBfdCatch makeBfdCatch() throws UnknownHostException {
+        return new NoviBfdCatch(
                 new Switch(
                         new SwitchId("ff:fe:00:00:00:00:00:01"),
                         Inet4Address.getByName("127.0.2.1"),
@@ -37,6 +37,6 @@ public abstract class BfdInitiatorAbstractTest extends BfdAbstractTest<NoviBfdSe
                         new SwitchId("ff:fd:00:00:00:00:00:02"),
                         Inet4Address.getByName("127.0.2.2"),
                         ImmutableSet.of(Switch.Feature.BFD), ImmutableList.of()),
-                5, 65001, 1, 1005, 500, (short) 3, true);
+                5, 65001, 1);
     }
 }

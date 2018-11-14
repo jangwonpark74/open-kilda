@@ -15,12 +15,13 @@
 
 package org.openkilda.messaging.floodlight.request;
 
-import org.openkilda.messaging.command.CommandData;
-import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.messaging.floodlight.BfdSessionAbstractTest;
 
-public class RemoveBfdSessionTest extends BfdInitiatorAbstractTest {
-    @Override
-    protected CommandData makeRequest(NoviBfdSession payload) {
-        return new RemoveBfdSession(payload);
+import org.junit.Test;
+
+public class RemoveBfdSessionTest extends BfdSessionAbstractTest {
+    @Test
+    public void serializeLoop() throws Exception {
+        commandSerializeLoop(new RemoveBfdSession(makeBfdSession()));
     }
 }

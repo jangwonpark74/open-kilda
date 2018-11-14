@@ -21,9 +21,13 @@ import org.openkilda.floodlight.error.NoFeatureException;
 import org.openkilda.floodlight.error.SwitchOperationException;
 import org.openkilda.floodlight.error.SwitchWriteException;
 import org.openkilda.floodlight.service.FeatureDetectorService;
+import org.openkilda.floodlight.service.kafka.IKafkaProducerService;
+import org.openkilda.floodlight.service.kafka.KafkaUtilityService;
 import org.openkilda.floodlight.service.session.Session;
 import org.openkilda.floodlight.service.session.SessionService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.model.Switch;
 
 import net.floodlightcontroller.core.IOFSwitch;
@@ -42,7 +46,9 @@ abstract class BfdCommand extends Command {
 
     protected final ISwitchManager switchManager;
     private final SessionService sessionService;
-    protected final FeatureDetectorService featureDetector;
+    private final FeatureDetectorService featureDetector;
+    private final IKafkaProducerService kafkaProducer;
+    private final KafkaUtilityService kafkaUtility;
 
     public BfdCommand(CommandContext context, DatapathId target) {
         super(context);
@@ -53,6 +59,8 @@ abstract class BfdCommand extends Command {
         switchManager = moduleContext.getServiceImpl(ISwitchManager.class);
         sessionService = moduleContext.getServiceImpl(SessionService.class);
         featureDetector = moduleContext.getServiceImpl(FeatureDetectorService.class);
+        kafkaProducer = moduleContext.getServiceImpl(IKafkaProducerService.class);
+        kafkaUtility = context.getModuleContext().getServiceImpl(KafkaUtilityService.class);
     }
 
     @Override
@@ -65,7 +73,10 @@ abstract class BfdCommand extends Command {
                 handle(session);
             }
         } catch (SwitchOperationException e) {
-            logError(e);
+            handleError(e);
+
+            // early error response
+            sendResponse();
         }
 
         return null;
@@ -77,11 +88,19 @@ abstract class BfdCommand extends Command {
 
     protected abstract void handle(Session session) throws SwitchWriteException;
 
+    protected abstract InfoData assembleResponse();
+
+    protected void sendResponse() {
+        CommandContext context = getContext();
+        InfoMessage response = context.makeInfoMessage(assembleResponse());
+        kafkaProducer.sendMessageAndTrack(kafkaUtility.getTopics().getTopoDiscoTopic(), response);
+    }
+
     protected void handleError(Throwable error) {
         try {
             errorDispatcher(error);
         } catch (Throwable e) {
-            logError(e);
+            log.error("Unable to perform BFD command {}: {}", getClass().getCanonicalName(), e.getMessage());
         }
     }
 
@@ -89,13 +108,13 @@ abstract class BfdCommand extends Command {
         throw error;
     }
 
-    protected void scheduleErrorHandling(CompletableFuture<?> future) {
+    protected void scheduleResultHandling(CompletableFuture<?> future) {
         future.whenComplete((result, error) -> {
-            if (error == null) {
-                return;
+            if (error != null) {
+                handleError(error);
             }
 
-            handleError(error);
+            sendResponse();
         });
     }
 
@@ -106,9 +125,5 @@ abstract class BfdCommand extends Command {
         if (!features.contains(requiredFeature)) {
             throw new NoFeatureException(sw.getId(), requiredFeature, features);
         }
-    }
-
-    private void logError(Throwable e) {
-        log.error("Unable to perform BFD command {}: {}", getClass().getCanonicalName(), e.getMessage());
     }
 }

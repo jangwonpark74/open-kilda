@@ -18,7 +18,10 @@ package org.openkilda.floodlight.command.bfd;
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
 import org.openkilda.floodlight.switchmanager.SwitchManager;
+import org.openkilda.messaging.floodlight.response.BfdCatchResponse;
+import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.model.NoviBfdCatch;
+import org.openkilda.messaging.model.NoviBfdCatch.Errors;
 
 import net.floodlightcontroller.core.IOFSwitch;
 import org.projectfloodlight.openflow.protocol.OFFactory;
@@ -28,22 +31,38 @@ import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IpProtocol;
-import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TransportPort;
 import org.projectfloodlight.openflow.types.U64;
 
 abstract class BfdCatchCommand extends BfdCommand {
-    // because flow traffic always encapsulated it is safe to put
-    // BFD catch rules below flow rules. All client traffic will be routed by flow
-    // rules i.e. there is no risk to route client packages into our BFD session.
-    protected static final int CATCH_RULES_PRIORITY = SwitchManager.FLOW_RULE_PRIORITY - 1000;
+    // One of verification rule is matched only be our DPID in ethDst field. So it will catch all our
+    // packages it our catch will be below it.
+    protected static final int CATCH_RULES_PRIORITY = SwitchManager.VERIFICATION_RULE_PRIORITY + 10;
 
     private final NoviBfdCatch bfdCatch;
+    private final BfdCatchResponse.BfdCatchResponseBuilder responseBuilder;
 
     public BfdCatchCommand(CommandContext context, NoviBfdCatch bfdCatch) {
         super(context, DatapathId.of(bfdCatch.getTarget().getDatapath().toLong()));
 
         this.bfdCatch = bfdCatch;
+        this.responseBuilder = BfdCatchResponse.builder()
+                .bfdCatch(bfdCatch);
+    }
+
+    @Override
+    protected InfoData assembleResponse() {
+        return responseBuilder.build();
+    }
+
+    @Override
+    protected void errorDispatcher(Throwable error) throws Throwable {
+        try {
+            super.errorDispatcher(error);
+        } catch (Throwable e) {
+            responseBuilder.errorCode(Errors.SWITCH_RESPONSE_ERROR);
+            throw e;
+        }
     }
 
     protected OFFlowMod.Builder applyCommonFlowModSettings(IOFSwitch sw, OFFlowMod.Builder messageBuilder) {
@@ -56,10 +75,7 @@ abstract class BfdCatchCommand extends BfdCommand {
     private Match makeCatchRuleMatch(IOFSwitch sw) {
         OFFactory ofFactory = sw.getOFFactory();
 
-        DatapathId remoteDatapath = DatapathId.of(bfdCatch.getRemote().getDatapath().toLong());
         return ofFactory.buildMatch()
-                .setExact(MatchField.IN_PORT, OFPort.of(bfdCatch.getPhysicalPortNumber()))
-                .setExact(MatchField.ETH_SRC, switchManager.dpIdToMac(remoteDatapath))
                 .setExact(MatchField.ETH_DST, switchManager.dpIdToMac(sw.getId()))
                 .setExact(MatchField.ETH_TYPE, EthType.IPv4)
                 .setExact(MatchField.IP_PROTO, IpProtocol.UDP)

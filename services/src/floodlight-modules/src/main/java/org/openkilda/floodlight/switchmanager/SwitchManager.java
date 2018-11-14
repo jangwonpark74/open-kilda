@@ -1241,7 +1241,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         logger.info("installing {} flow: {}", flowId, flowMod);
 
         if (!sw.write(flowMod)) {
-            throw new OFInstallException(sw.getId(), flowMod);
+            throw new OfInstallException(sw.getId(), flowMod);
         }
 
         return flowMod.getXid();

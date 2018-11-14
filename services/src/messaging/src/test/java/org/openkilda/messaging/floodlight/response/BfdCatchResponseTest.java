@@ -13,15 +13,16 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.floodlight.request;
+package org.openkilda.messaging.floodlight.response;
 
 import org.openkilda.messaging.floodlight.BfdCatchAbstractTest;
+import org.openkilda.messaging.model.NoviBfdCatch.Errors;
 
 import org.junit.Test;
 
-public class RemoveBfdCatchTest extends BfdCatchAbstractTest {
+public class BfdCatchResponseTest extends BfdCatchAbstractTest {
     @Test
     public void serializeLoop() throws Exception {
-        commandSerializeLoop(new RemoveBfdCatch(makeBfdCatch()));
+        infoSerializeLoop(new BfdCatchResponse(makeBfdCatch(), Errors.SWITCH_RESPONSE_ERROR));
     }
 }

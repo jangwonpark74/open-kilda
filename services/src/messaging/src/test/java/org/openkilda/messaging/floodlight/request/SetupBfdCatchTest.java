@@ -15,12 +15,13 @@
 
 package org.openkilda.messaging.floodlight.request;
 
-import org.openkilda.messaging.command.CommandData;
-import org.openkilda.messaging.model.NoviBfdCatch;
+import org.openkilda.messaging.floodlight.BfdCatchAbstractTest;
 
-public class SetupBfdCatchTest extends BfdRespondentAbstractTest {
-    @Override
-    protected CommandData makeRequest(NoviBfdCatch payload) {
-        return new SetupBfdCatch(payload);
+import org.junit.Test;
+
+public class SetupBfdCatchTest extends BfdCatchAbstractTest {
+    @Test
+    public void serializeLoop() throws Exception {
+        commandSerializeLoop(new SetupBfdCatch(makeBfdCatch()));
     }
 }

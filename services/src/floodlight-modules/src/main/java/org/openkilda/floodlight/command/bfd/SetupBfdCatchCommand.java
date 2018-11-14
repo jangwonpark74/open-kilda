@@ -33,9 +33,9 @@ public class SetupBfdCatchCommand extends BfdCatchCommand {
 
     @Override
     public void handle(Session session) throws SwitchWriteException {
-        log.info("Setup BFD respondent - {}", getBfdCatch());
+        log.info("Setup BFD catch rule - {}", getBfdCatch());
 
-        scheduleErrorHandling(session.write(makeCatchRuleAddMessage(session.getSw())));
+        scheduleResultHandling(session.write(makeCatchRuleAddMessage(session.getSw())));
     }
 
     private OFMessage makeCatchRuleAddMessage(IOFSwitch sw) {

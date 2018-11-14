@@ -26,12 +26,12 @@ import lombok.Value;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class RemoveBfdCatch extends CommandData {
-    @JsonProperty("bfd-respondent")
+    @JsonProperty("bfd-catch")
     private NoviBfdCatch bfdCatch;
 
     @JsonCreator
     public RemoveBfdCatch(
-            @JsonProperty("bfd-respondent") NoviBfdCatch bfdCatch) {
+            @JsonProperty("bfd-catch") NoviBfdCatch bfdCatch) {
         this.bfdCatch = bfdCatch;
     }
 }

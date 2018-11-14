@@ -13,31 +13,32 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.model;
+package org.openkilda.messaging.floodlight.response;
+
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.model.NoviBfdCatch;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
 import lombok.Value;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
-public class NoviBfdCatch extends NoviBfdEndpoint {
-    @JsonCreator
-    @Builder(toBuilder = true)
-    public NoviBfdCatch(
-            @JsonProperty("target") Switch target,
-            @JsonProperty("remote") Switch remote,
-            @JsonProperty("physical-port-number") int physicalPortNumber,
-            @JsonProperty("udp-port-number") int udpPortNumber,
-            @JsonProperty("discriminator") int discriminator) {
-        super(target, remote, physicalPortNumber, udpPortNumber, discriminator);
-    }
+@EqualsAndHashCode(callSuper = false)
+public class BfdCatchResponse extends InfoData {
+    @JsonProperty("bfd-catch")
+    private NoviBfdCatch bfdCatch;
 
-    public enum Errors {
-        SWITCH_RESPONSE_ERROR
+    @JsonProperty("error-code")
+    private NoviBfdCatch.Errors errorCode;
+
+    @Builder
+    @JsonCreator
+    public BfdCatchResponse(
+            @JsonProperty("bfd-catch") NoviBfdCatch bfdCatch,
+            @JsonProperty("error-code") NoviBfdCatch.Errors errorCode) {
+        this.bfdCatch = bfdCatch;
+        this.errorCode = errorCode;
     }
 }

@@ -56,4 +56,16 @@ public class NoviBfdSession extends NoviBfdEndpoint {
         this.multiplier = multiplier;
         this.keepOverDisconnect = keepOverDisconnect;
     }
+
+    public enum Errors {
+        SWITCH_RESPONSE_ERROR,
+        NOVI_BFD_BAD_PORT_ERROR,
+        NOVI_BFD_BAD_DISCRIMINATOR_ERROR,
+        NOVI_BFD_BAD_INTERVAL_ERROR,
+        NOVI_BFD_BAD_MULTIPLIER_ERROR,
+        NOVI_BFD_DISCRIMINATOR_NOT_FOUND_ERROR,
+        NOVI_BFD_INCOMPATIBLE_PKT_ERROR,
+        NOVI_BFD_TOO_MANY_ERROR,
+        NOVI_BFD_UNKNOWN_ERROR
+    }
 }

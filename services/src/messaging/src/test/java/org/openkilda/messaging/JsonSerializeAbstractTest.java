@@ -13,35 +13,38 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.floodlight.request;
+package org.openkilda.messaging;
 
-import org.openkilda.messaging.StringSerializer;
 import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.CommandMessage;
-import org.openkilda.messaging.model.NoviBfdEndpoint;
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.info.InfoMessage;
 
 import org.junit.Assert;
-import org.junit.Test;
 
-import java.net.UnknownHostException;
-
-public abstract class BfdAbstractTest<T extends NoviBfdEndpoint> implements StringSerializer {
-    @Test
-    public void serializeLoop() throws Exception {
-        CommandData origin = makeRequest(makePayload());
-
+public abstract class JsonSerializeAbstractTest implements StringSerializer {
+    protected void commandSerializeLoop(CommandData origin) throws Exception {
         CommandMessage wrapper = new CommandMessage(origin, 0, "serialize-loop");
         serialize(wrapper);
 
         CommandMessage decodedWrapper = (CommandMessage) deserialize();
         CommandData decoded = decodedWrapper.getData();
+        validate(origin, decoded);
+    }
+
+    protected void infoSerializeLoop(InfoData origin) throws Exception {
+        InfoMessage wrapper = new InfoMessage(origin, 0, "serialize-loop");
+        serialize(wrapper);
+
+        InfoMessage decodedWrapper = (InfoMessage) deserialize();
+        InfoData decoded = decodedWrapper.getData();
+        validate(origin, decoded);
+    }
+
+    protected void validate(MessageData origin, MessageData decoded) {
         Assert.assertEquals(
                 String.format("%s object have been mangled in serialisation/deserialization loop",
                         origin.getClass().getName()),
                 origin, decoded);
     }
-
-    protected abstract T makePayload() throws UnknownHostException;
-
-    protected abstract CommandData makeRequest(T payload);
 }

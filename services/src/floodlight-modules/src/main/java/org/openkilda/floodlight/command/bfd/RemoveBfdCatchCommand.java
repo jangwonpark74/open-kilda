@@ -30,9 +30,9 @@ public class RemoveBfdCatchCommand extends BfdCatchCommand {
 
     @Override
     protected void handle(Session session) throws SwitchWriteException {
-        log.info("Remove BFD respondent - {}", getBfdCatch());
+        log.info("Remove BFD catch rule - {}", getBfdCatch());
 
-        scheduleErrorHandling(session.write(makeCatchRuleDelMessage(session.getSw())));
+        scheduleResultHandling(session.write(makeCatchRuleDelMessage(session.getSw())));
     }
 
     private OFMessage makeCatchRuleDelMessage(IOFSwitch sw) {

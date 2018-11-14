@@ -29,7 +29,7 @@ public class RemoveBfdSessionCommand extends BfdSessionCommand {
     public void handle(Session session) throws SwitchWriteException {
         log.info("Remove BFD session - {}", getBfdSession());
 
-        scheduleErrorHandling(session.write(makeSessionConfigMessage(session.getSw())));
+        scheduleResultHandling(session.write(makeSessionConfigMessage(session.getSw())));
     }
 
     private static NoviBfdSession alterBfdInitiator(NoviBfdSession.NoviBfdSessionBuilder builder) {

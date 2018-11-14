@@ -13,31 +13,33 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.model;
+package org.openkilda.messaging.floodlight.response;
+
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.messaging.model.NoviBfdSession.Errors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
 import lombok.Value;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
-public class NoviBfdCatch extends NoviBfdEndpoint {
-    @JsonCreator
-    @Builder(toBuilder = true)
-    public NoviBfdCatch(
-            @JsonProperty("target") Switch target,
-            @JsonProperty("remote") Switch remote,
-            @JsonProperty("physical-port-number") int physicalPortNumber,
-            @JsonProperty("udp-port-number") int udpPortNumber,
-            @JsonProperty("discriminator") int discriminator) {
-        super(target, remote, physicalPortNumber, udpPortNumber, discriminator);
-    }
+@EqualsAndHashCode(callSuper = false)
+public class BfdSessionResponse extends InfoData {
+    @JsonProperty("bfd-session")
+    NoviBfdSession bfdSession;
 
-    public enum Errors {
-        SWITCH_RESPONSE_ERROR
+    @JsonProperty("error-code")
+    NoviBfdSession.Errors errorCode;
+
+    @Builder
+    @JsonCreator
+    public BfdSessionResponse(
+            @JsonProperty("bfd-session") NoviBfdSession bfdSession,
+            @JsonProperty("error-code") Errors errorCode) {
+        this.bfdSession = bfdSession;
+        this.errorCode = errorCode;
     }
 }

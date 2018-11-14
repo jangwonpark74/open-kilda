@@ -46,6 +46,6 @@ public class SetupBfdSessionCommand extends BfdSessionCommand {
     public void handle(Session session) throws SwitchWriteException {
         log.info("Setup BFD session - {}", getBfdSession());
 
-        scheduleErrorHandling(session.write(makeSessionConfigMessage(session.getSw())));
+        scheduleResultHandling(session.write(makeSessionConfigMessage(session.getSw())));
     }
 }

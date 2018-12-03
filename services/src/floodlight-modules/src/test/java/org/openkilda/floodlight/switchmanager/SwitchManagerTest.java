@@ -1034,5 +1034,10 @@ public class SwitchManagerTest {
         public long getSystemMeterBurstSizeInPackets() {
             return 4096;
         }
+
+        @Override
+        public boolean getOvsMetersEnabled() {
+            return false;
+        }
     }
 }

@@ -55,7 +55,7 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
     }
 
     private void monotonicTick(TopologyBuilder topology) {
-        topology.setBolt(MonotonicTick.BOLT_ID, new MonotonicTick());
+        topology.setBolt(MonotonicTick.BOLT_ID, new MonotonicTick(topologyConfig));
     }
 
     private void input(TopologyBuilder topology, int scaleFactor) {

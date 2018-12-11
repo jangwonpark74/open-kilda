@@ -18,6 +18,46 @@ package org.openkilda.wfm.topology.discovery.bolt;
 import org.openkilda.wfm.share.bolt.AbstractTick;
 import org.openkilda.wfm.topology.ping.bolt.ComponentId;
 
+import com.google.common.base.Preconditions;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
+
 public class MonotonicTick extends AbstractTick {
     public static final String BOLT_ID = ComponentId.MONOTONIC_TICK.toString();
+
+    public static final String STREAM_DISCOVERY_ID = "discovery.tick";
+    public static final Fields STREAM_DISCOVERY_FIELDS = AbstractTick.STREAM_FIELDS;
+
+    private static final int TICK_INTERVAL_SECONDS = 1;  // 1 is the minimum possible value
+
+    private final int discoveryInterval;
+
+    public MonotonicTick(int discoveryInterval) {
+        super(TICK_INTERVAL_SECONDS);
+
+        Preconditions.checkArgument(0 < discoveryInterval,
+                "invalid discoveryInterval value %d < 1", discoveryInterval);
+        this.discoveryInterval = discoveryInterval;
+    }
+
+    @Override
+    protected void produceTick(Tuple input) {
+        super.produceTick(input);
+
+        produceDiscoveryTick(input);
+    }
+
+    private void produceDiscoveryTick(Tuple input) {
+        if (isMultiplierTick(discoveryInterval)) {
+            getOutput().emit(STREAM_DISCOVERY_ID, input, input.getValues());
+        }
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer outputManager) {
+        super.declareOutputFields(outputManager);
+
+        outputManager.declareStream(STREAM_DISCOVERY_ID, STREAM_DISCOVERY_FIELDS);
+    }
 }

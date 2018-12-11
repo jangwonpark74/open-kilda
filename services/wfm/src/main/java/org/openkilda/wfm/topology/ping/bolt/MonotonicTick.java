@@ -31,12 +31,13 @@ public class MonotonicTick extends AbstractTick {
     public static final String STREAM_PING_ID = "ping.tick";
     public static final Fields STREAM_PING_FIELDS = new Fields(FIELD_ID_TICK, FIELD_ID_CONTEXT);
 
+    private static final int TICK_INTERVAL_SECONDS = 1;  // 1 is the minimum possible value
+
     private final int pingInterval;
-    private int pingSequenceIndex = 0;
 
     public MonotonicTick(int pingInterval) {
         // TODO(surabujin): switch to subsecond frequency
-        super(1);
+        super(TICK_INTERVAL_SECONDS);
 
         this.pingInterval = pingInterval;
         if (this.pingInterval < 1) {
@@ -52,14 +53,10 @@ public class MonotonicTick extends AbstractTick {
     }
 
     private void pingTick(Tuple input) {
-        if (++pingSequenceIndex <= pingInterval) {
-            return;
+        if (isMultiplierTick(pingInterval)) {
+            Values output = new Values(input.getValue(0), input.getValueByField(AbstractTick.FIELD_ID_CONTEXT));
+            getOutput().emit(STREAM_PING_ID, input, output);
         }
-
-        pingSequenceIndex = 0;
-
-        Values output = new Values(input.getValue(0), new CommandContext());
-        getOutput().emit(STREAM_PING_ID, input, output);
     }
 
     @Override

@@ -18,9 +18,18 @@ package org.openkilda.wfm.topology.discovery;
 import org.openkilda.wfm.topology.AbstractTopologyConfig;
 
 import com.sabre.oss.conf4j.annotation.Configuration;
+import com.sabre.oss.conf4j.annotation.Default;
+import com.sabre.oss.conf4j.annotation.IgnoreKey;
 import com.sabre.oss.conf4j.annotation.Key;
 
 public interface DiscoveryTopologyConfig extends AbstractTopologyConfig {
+    @IgnoreKey
+    DiscoveryConfig getDiscoveryConfig();
+
+    default int getScaleFactor() {
+        return getDiscoveryConfig().getScaleFactor();
+    }
+
     default String getKafkaSpeakerDiscoTopic() {
         return getKafkaTopics().getSpeakerDiscoTopic();
     }
@@ -35,6 +44,10 @@ public interface DiscoveryTopologyConfig extends AbstractTopologyConfig {
     @Configuration
     @Key("discovery")
     interface DiscoveryConfig {
+        @Key("scale-factor")
+        @Default("2")
+        int getScaleFactor();
+
         @Key("interval")
         int getDiscoveryInterval();
 

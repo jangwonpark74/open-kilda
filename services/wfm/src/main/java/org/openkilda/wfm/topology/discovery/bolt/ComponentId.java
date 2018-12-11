@@ -13,10 +13,16 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.discovery;
+package org.openkilda.wfm.topology.discovery.bolt;
 
 public enum ComponentId {
-    INPUT("input");
+    MONOTONIC_TICK("monotonic.tick"),
+
+    INPUT("input"),
+    INPUT_DECODER("input.decoder"),
+
+    SPEAKER_ENCODER("speaker.encoder"),
+    SPEAKER_OUTPUT("speaker.output");
 
     private final String value;
 

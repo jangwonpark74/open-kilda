@@ -17,9 +17,13 @@ package org.openkilda.wfm.topology.discovery;
 
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.topology.AbstractTopology;
-import org.openkilda.wfm.topology.ping.bolt.InputDecoder;
+import org.openkilda.wfm.topology.discovery.bolt.ComponentId;
+import org.openkilda.wfm.topology.discovery.bolt.InputDecoder;
+import org.openkilda.wfm.topology.discovery.bolt.MonotonicTick;
+import org.openkilda.wfm.topology.discovery.bolt.SpeakerEncoder;
 
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.kafka.bolt.KafkaBolt;
 import org.apache.storm.kafka.spout.KafkaSpout;
 import org.apache.storm.topology.TopologyBuilder;
 
@@ -33,24 +37,45 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
      */
     @Override
     public StormTopology createTopology() {
+        int scaleFactor = topologyConfig.getScaleFactor();
+
         TopologyBuilder topology = new TopologyBuilder();
 
-        input(topology);
-        // TODO
+        monotonicTick(topology);
+        input(topology, scaleFactor);
+
+        flTracker(topology, scaleFactor);
+        switchHandler(topology, scaleFactor);
+        portHandler(topology, scaleFactor);
+        islHandler(topology, scaleFactor);
+
+        output(topology, scaleFactor);
 
         return topology.createTopology();
     }
 
-    private void input(TopologyBuilder topology) {
+    private void monotonicTick(TopologyBuilder topology) {
+        topology.setBolt(MonotonicTick.BOLT_ID, new MonotonicTick());
+    }
+
+    private void input(TopologyBuilder topology, int scaleFactor) {
         KafkaSpout<String, String> spout = createKafkaSpout(
                 topologyConfig.getKafkaSpeakerDiscoTopic(), ComponentId.INPUT.toString());
         topology.setSpout(ComponentId.INPUT.toString(), spout, scaleFactor);
-    }
 
-    private void inputDecoder(TopologyBuilder topology) {
         InputDecoder bolt = new InputDecoder();
         topology.setBolt(InputDecoder.BOLT_ID, bolt, scaleFactor)
                 .shuffleGrouping(ComponentId.INPUT.toString());
+    }
+
+    private void output(TopologyBuilder topology, int scaleFactor) {
+        SpeakerEncoder bolt = new SpeakerEncoder();
+        topology.setBolt(SpeakerEncoder.BOLT_ID, bolt, scaleFactor);
+        // TODO(surabujin): subscribe
+
+        KafkaBolt output = createKafkaBolt(topologyConfig.getKafkaSpeakerTopic());
+        topology.setBolt(ComponentId.SPEAKER_OUTPUT.toString(), output, scaleFactor)
+                .shuffleGrouping(SpeakerEncoder.BOLT_ID);
     }
 
     /**

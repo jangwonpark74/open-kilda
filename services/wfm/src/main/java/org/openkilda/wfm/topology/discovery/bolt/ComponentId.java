@@ -21,6 +21,8 @@ public enum ComponentId {
     INPUT("input"),
     INPUT_DECODER("input.decoder"),
 
+    FL_MONITOR("fl-monitor"),
+
     SPEAKER_ENCODER("speaker.encoder"),
     SPEAKER_OUTPUT("speaker.output");
 

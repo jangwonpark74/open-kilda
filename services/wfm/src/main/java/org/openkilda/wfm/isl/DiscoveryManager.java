@@ -222,8 +222,9 @@ public class DiscoveryManager {
      *
      * @return true if this is new .. ie this isn't a consecutive failure.
      */
-    public boolean handleFailed(NetworkEndpoint endpoint) {
+    public boolean handleFailed(SwitchId switchId, int portId) {
         boolean stateChanged = false;
+        NetworkEndpoint endpoint = new NetworkEndpoint(switchId, portId);
         Optional<DiscoveryLink> matchedLink = findBySourceEndpoint(endpoint);
 
         if (!matchedLink.isPresent()) {

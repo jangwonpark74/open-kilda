@@ -1,4 +1,5 @@
-/* Copyright 2018 Telstra Open Source
+/*
+ * Copyright 2018 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.event.service;
+package org.openkilda.wfm.topology.discovery.service;
 
 import static org.mockito.Mockito.when;
 
@@ -22,9 +23,9 @@ import org.openkilda.messaging.info.discovery.NetworkDumpBeginMarker;
 import org.openkilda.messaging.info.discovery.NetworkDumpEndMarker;
 import org.openkilda.messaging.info.discovery.NetworkDumpPortData;
 import org.openkilda.messaging.info.discovery.NetworkDumpSwitchData;
-import org.openkilda.messaging.model.SwitchId;
+import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.CommandContext;
-import org.openkilda.wfm.topology.event.bolt.FlMonitor.OutputAdapter;
+import org.openkilda.wfm.topology.discovery.bolt.FlMonitor.OutputAdapter;
 import org.openkilda.wfm.topology.event.model.Sync;
 
 import org.junit.Assert;
@@ -83,7 +84,7 @@ public class SyncProcessTest {
     }
 
     @Test
-    public void stale() throws Exception {
+    public void stale() {
         CommandContext context = new CommandContext();
         when(output.getContext())
                 .thenReturn(context);

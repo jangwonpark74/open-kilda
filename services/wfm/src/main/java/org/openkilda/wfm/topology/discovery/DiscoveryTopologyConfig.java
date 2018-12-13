@@ -30,6 +30,18 @@ public interface DiscoveryTopologyConfig extends AbstractTopologyConfig {
         return getDiscoveryConfig().getScaleFactor();
     }
 
+    default int getDiscoveryInterval() {
+        return getDiscoveryConfig().getDiscoveryInterval();
+    }
+
+    default int getSpeakerFailureTimeoutSeconds() {
+        return getDiscoveryConfig().getSpeakerFailureTimeoutSeconds();
+    }
+
+    default int getDumpRequestTimeoutSeconds() {
+        return getDiscoveryConfig().getDumpRequestTimeoutSeconds();
+    }
+
     default String getKafkaSpeakerDiscoTopic() {
         return getKafkaTopics().getSpeakerDiscoTopic();
     }
@@ -60,10 +72,10 @@ public interface DiscoveryTopologyConfig extends AbstractTopologyConfig {
         @Key("keep.removed.isl")
         int getKeepRemovedIslTimeout();
 
-        @Key("speaker-failure-timeout")
-        int getDiscoverySpeakerFailureTimeout();
+        @Key("speaker-failure-timeout-seconds")
+        int getSpeakerFailureTimeoutSeconds();
 
         @Key("dump-request-timeout-seconds")
-        int getDiscoveryDumpRequestTimeout();
+        int getDumpRequestTimeoutSeconds();
     }
 }

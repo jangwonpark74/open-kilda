@@ -13,13 +13,13 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.event.service;
+package org.openkilda.wfm.topology.discovery.service;
 
 import org.openkilda.messaging.HeartBeat;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.wfm.share.utils.WatchDog;
-import org.openkilda.wfm.topology.event.bolt.FlMonitor.OutputAdapter;
+import org.openkilda.wfm.topology.discovery.bolt.FlMonitor.OutputAdapter;
 
 import com.google.common.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;

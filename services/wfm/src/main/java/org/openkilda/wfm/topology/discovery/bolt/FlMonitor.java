@@ -13,17 +13,16 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.event.bolt;
+package org.openkilda.wfm.topology.discovery.bolt;
 
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.command.CommandData;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.AbstractException;
-import org.openkilda.wfm.topology.event.OFEventWfmTopologyConfig;
-import org.openkilda.wfm.topology.event.OFEventWfmTopologyConfig.DiscoveryConfig;
+import org.openkilda.wfm.topology.discovery.service.FlMonitorService;
+import org.openkilda.wfm.topology.event.bolt.SpeakerDecoder;
 import org.openkilda.wfm.topology.event.model.Sync;
-import org.openkilda.wfm.topology.event.service.FlMonitorService;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.task.OutputCollector;
@@ -40,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 public class FlMonitor extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.FL_MONITOR.toString();
 
-    public static final String FIELD_ID_INPUT = SpeakerDecoder.FIELD_ID_INPUT;
+    public static final String FIELD_ID_INPUT = InputDecoder.FIELD_ID_INPUT;
     public static final String FIELD_ID_SYNC = "sync";
 
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_INPUT, FIELD_ID_CONTEXT);
@@ -56,11 +55,9 @@ public class FlMonitor extends AbstractBolt {
 
     private FlMonitorService monitor;
 
-    public FlMonitor(OFEventWfmTopologyConfig config) {
-        DiscoveryConfig discoveryConfig = config.getDiscoveryConfig();
-
-        speakerOutageDelay = TimeUnit.SECONDS.toMillis(discoveryConfig.getDiscoverySpeakerFailureTimeout());
-        dumpRequestTimeout = TimeUnit.SECONDS.toMillis(discoveryConfig.getDiscoveryDumpRequestTimeout());
+    public FlMonitor(long speakerOutageDelay, long dumpRequestTimeout) {
+        this.speakerOutageDelay = TimeUnit.SECONDS.toMillis(speakerOutageDelay);
+        this.dumpRequestTimeout = TimeUnit.SECONDS.toMillis(dumpRequestTimeout);
     }
 
     @Override

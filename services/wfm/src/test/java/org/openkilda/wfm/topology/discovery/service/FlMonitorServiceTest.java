@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.event.service;
+package org.openkilda.wfm.topology.discovery.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -26,9 +26,9 @@ import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.discovery.NetworkDumpEndMarker;
 import org.openkilda.messaging.info.event.PortChangeType;
 import org.openkilda.messaging.info.event.PortInfoData;
-import org.openkilda.messaging.model.SwitchId;
+import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.CommandContext;
-import org.openkilda.wfm.topology.event.bolt.FlMonitor.OutputAdapter;
+import org.openkilda.wfm.topology.discovery.bolt.FlMonitor.OutputAdapter;
 import org.openkilda.wfm.topology.event.model.Sync;
 
 import org.junit.Before;
@@ -39,7 +39,7 @@ public class FlMonitorServiceTest {
     private FlMonitorService monitor;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         context = new CommandContext();
         monitor = new FlMonitorService(3000L, 4000L, 0);
     }

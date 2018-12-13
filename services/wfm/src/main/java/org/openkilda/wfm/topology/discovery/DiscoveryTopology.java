@@ -18,6 +18,7 @@ package org.openkilda.wfm.topology.discovery;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.discovery.bolt.ComponentId;
+import org.openkilda.wfm.topology.discovery.bolt.FlMonitor;
 import org.openkilda.wfm.topology.discovery.bolt.InputDecoder;
 import org.openkilda.wfm.topology.discovery.bolt.MonotonicTick;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerEncoder;
@@ -44,7 +45,7 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
         monotonicTick(topology);
         input(topology, scaleFactor);
 
-        flTracker(topology, scaleFactor);
+        flMonitor(topology);
         switchHandler(topology, scaleFactor);
         portHandler(topology, scaleFactor);
         islHandler(topology, scaleFactor);
@@ -55,7 +56,7 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
     }
 
     private void monotonicTick(TopologyBuilder topology) {
-        topology.setBolt(MonotonicTick.BOLT_ID, new MonotonicTick(topologyConfig));
+        topology.setBolt(MonotonicTick.BOLT_ID, new MonotonicTick(topologyConfig.getDiscoveryInterval()));
     }
 
     private void input(TopologyBuilder topology, int scaleFactor) {
@@ -68,10 +69,20 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
                 .shuffleGrouping(ComponentId.INPUT.toString());
     }
 
+    private void flMonitor(TopologyBuilder topology) {
+        // speaker monitor
+        FlMonitor bolt = new FlMonitor(topologyConfig.getSpeakerFailureTimeoutSeconds(),
+                                       topologyConfig.getDumpRequestTimeoutSeconds());
+        topology.setBolt(FlMonitor.BOLT_ID, bolt, 1)
+                .allGrouping(MonotonicTick.BOLT_ID)
+                .shuffleGrouping(InputDecoder.BOLT_ID);
+    }
+
     private void output(TopologyBuilder topology, int scaleFactor) {
         SpeakerEncoder bolt = new SpeakerEncoder();
-        topology.setBolt(SpeakerEncoder.BOLT_ID, bolt, scaleFactor);
-        // TODO(surabujin): subscribe
+        topology.setBolt(SpeakerEncoder.BOLT_ID, bolt, scaleFactor)
+                .shuffleGrouping(FlMonitor.BOLT_ID, FlMonitor.STREAM_SPEAKER_ID);
+                // TODO(surabujin): subscribe
 
         KafkaBolt output = createKafkaBolt(topologyConfig.getKafkaSpeakerTopic());
         topology.setBolt(ComponentId.SPEAKER_OUTPUT.toString(), output, scaleFactor)

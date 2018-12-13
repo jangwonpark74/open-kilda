@@ -38,7 +38,6 @@ import org.openkilda.wfm.AbstractStormTest;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.OfeMessageUtils;
 import org.openkilda.wfm.topology.event.bolt.ComponentId;
-import org.openkilda.wfm.topology.event.bolt.OfeLinkBolt;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;

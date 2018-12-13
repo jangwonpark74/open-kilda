@@ -28,20 +28,20 @@ import org.openkilda.messaging.info.event.PortChangeType;
 import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.CommandContext;
-import org.openkilda.wfm.topology.discovery.bolt.FlMonitor.OutputAdapter;
+import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor.OutputAdapter;
 import org.openkilda.wfm.topology.event.model.Sync;
 
 import org.junit.Before;
 import org.junit.Test;
 
-public class FlMonitorServiceTest {
+public class SpeakerMonitorServiceTest {
     private CommandContext context;
-    private FlMonitorService monitor;
+    private SpeakerMonitorService monitor;
 
     @Before
     public void setUp() {
         context = new CommandContext();
-        monitor = new FlMonitorService(3000L, 4000L, 0);
+        monitor = new SpeakerMonitorService(3000L, 4000L, 0);
     }
 
     @Test

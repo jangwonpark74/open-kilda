@@ -13,23 +13,9 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.event.model;
+package org.openkilda.wfm.topology.discovery.model;
 
-import org.openkilda.messaging.model.Switch;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-
-@EqualsAndHashCode
-public class Sync implements Serializable {
-    @Getter
-    private final List<Switch> activeSwitches = new ArrayList<>();
-
-    public void addActiveSwitch(Switch switchRecord) {
-        activeSwitches.add(switchRecord);
-    }
+public enum OperationMode {
+    MANAGED_MODE,
+    UNMANAGED_MODE
 }

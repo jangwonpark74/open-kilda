@@ -21,9 +21,9 @@ import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.discovery.NetworkDumpBeginMarker;
 import org.openkilda.messaging.info.discovery.NetworkDumpEndMarker;
-import org.openkilda.messaging.info.discovery.NetworkDumpPortData;
 import org.openkilda.messaging.info.discovery.NetworkDumpSwitchData;
-import org.openkilda.wfm.topology.discovery.bolt.FlMonitor.OutputAdapter;
+import org.openkilda.messaging.model.Switch;
+import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor.OutputAdapter;
 import org.openkilda.wfm.topology.event.model.Sync;
 
 import lombok.Getter;
@@ -77,8 +77,6 @@ public class SyncProcess {
             handleEnd();
         } else if (payload instanceof NetworkDumpSwitchData) {
             handleSwitchDump((NetworkDumpSwitchData) payload);
-        } else if (payload instanceof NetworkDumpPortData) {
-            handlePortDump((NetworkDumpPortData) payload);
         } else {
             return false;
         }
@@ -96,13 +94,9 @@ public class SyncProcess {
     }
 
     private void handleSwitchDump(NetworkDumpSwitchData switchDump) {
-        log.info("Got FL sync switch data: {}", switchDump.getSwitchId());
-        payload.addActiveSwitch(switchDump.getSwitchId());
-    }
-
-    private void handlePortDump(NetworkDumpPortData portDump) {
-        log.info("Got FL sync port data: {} port{}", portDump.getSwitchId(), portDump.getPortNo());
-        payload.addActivePort(portDump.getSwitchId(), portDump.getPortNo());
+        Switch switchRecord = switchDump.getSwitchRecord();
+        log.info("Got FL sync switch data: {}", switchRecord.getDatapath());
+        payload.addActiveSwitch(switchRecord);
     }
 
     private void ignoreInput(InfoMessage message) {

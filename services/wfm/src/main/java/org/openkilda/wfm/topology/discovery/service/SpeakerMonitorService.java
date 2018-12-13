@@ -19,13 +19,14 @@ import org.openkilda.messaging.HeartBeat;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.wfm.share.utils.WatchDog;
-import org.openkilda.wfm.topology.discovery.bolt.FlMonitor.OutputAdapter;
+import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor.OutputAdapter;
+import org.openkilda.wfm.topology.discovery.model.OperationMode;
 
 import com.google.common.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FlMonitorService {
+public class SpeakerMonitorService {
     private final WatchDog connectWatchDog;
     private final long dumpRequestTimeout;
     private SyncProcess syncProcess;
@@ -33,7 +34,7 @@ public class FlMonitorService {
     @VisibleForTesting
     State state = State.NEED_SYNC;
 
-    public FlMonitorService(long speakerOutagePeriod, long dumpRequestTimeout, long timestamp) {
+    public SpeakerMonitorService(long speakerOutagePeriod, long dumpRequestTimeout, long timestamp) {
         this.connectWatchDog = new WatchDog("speaker", speakerOutagePeriod, timestamp);
         this.dumpRequestTimeout = dumpRequestTimeout;
     }
@@ -90,7 +91,7 @@ public class FlMonitorService {
 
             case MAIN:
                 if (connectWatchDog.detectFailure(timeMillis)) {
-                    stateTransition(State.OFFLINE);
+                    connectionLost(outputAdapter);
                 }
                 break;
 
@@ -107,6 +108,12 @@ public class FlMonitorService {
         stateTransition(State.WAIT_SYNC);
     }
 
+    private void connectionLost(OutputAdapter outputAdapter) {
+        stateTransition(State.OFFLINE);
+
+        outputAdapter.activateMode(OperationMode.UNMANAGED_MODE);
+    }
+
     private void feedSync(OutputAdapter outputAdapter, Message message) {
         if (message instanceof InfoMessage) {
             syncProcess.input((InfoMessage) message);
@@ -119,9 +126,11 @@ public class FlMonitorService {
     }
 
     private void completeSync(OutputAdapter outputAdapter) {
-        outputAdapter.shareSync(syncProcess.getPayload());
-        syncProcess = null;
         stateTransition(State.MAIN);
+
+        outputAdapter.shareSync(syncProcess.getPayload());
+        outputAdapter.activateMode(OperationMode.MANAGED_MODE);
+        syncProcess = null;
     }
 
     private void stateTransition(State switchTo) {

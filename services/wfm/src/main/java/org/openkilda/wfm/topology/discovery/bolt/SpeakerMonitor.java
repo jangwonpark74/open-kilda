@@ -20,7 +20,8 @@ import org.openkilda.messaging.command.CommandData;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.AbstractException;
-import org.openkilda.wfm.topology.discovery.service.FlMonitorService;
+import org.openkilda.wfm.topology.discovery.model.OperationMode;
+import org.openkilda.wfm.topology.discovery.service.SpeakerMonitorService;
 import org.openkilda.wfm.topology.event.bolt.SpeakerDecoder;
 import org.openkilda.wfm.topology.event.model.Sync;
 
@@ -36,11 +37,12 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class FlMonitor extends AbstractBolt {
+public class SpeakerMonitor extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.FL_MONITOR.toString();
 
     public static final String FIELD_ID_INPUT = InputDecoder.FIELD_ID_INPUT;
     public static final String FIELD_ID_SYNC = "sync";
+    public static final String FIELD_ID_MODE = "mode";
 
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_INPUT, FIELD_ID_CONTEXT);
 
@@ -50,12 +52,15 @@ public class FlMonitor extends AbstractBolt {
     public static final String STREAM_SYNC_ID = "sync";
     public static final Fields STREAM_SYNC_FIELDS = new Fields(FIELD_ID_SYNC, FIELD_ID_CONTEXT);
 
+    public static final String STREAM_MODE_ID = "mode";
+    public static final Fields STREAM_MODE_FIELDS = new Fields(FIELD_ID_MODE, FIELD_ID_CONTEXT);
+
     private final long speakerOutageDelay;
     private final long dumpRequestTimeout;
 
-    private FlMonitorService monitor;
+    private SpeakerMonitorService monitor;
 
-    public FlMonitor(long speakerOutageDelay, long dumpRequestTimeout) {
+    public SpeakerMonitor(long speakerOutageDelay, long dumpRequestTimeout) {
         this.speakerOutageDelay = TimeUnit.SECONDS.toMillis(speakerOutageDelay);
         this.dumpRequestTimeout = TimeUnit.SECONDS.toMillis(dumpRequestTimeout);
     }
@@ -80,7 +85,7 @@ public class FlMonitor extends AbstractBolt {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector outputManager) {
         super.prepare(stormConf, context, outputManager);
 
-        monitor = new FlMonitorService(speakerOutageDelay, dumpRequestTimeout, System.currentTimeMillis());
+        monitor = new SpeakerMonitorService(speakerOutageDelay, dumpRequestTimeout, System.currentTimeMillis());
     }
 
     @Override
@@ -88,6 +93,7 @@ public class FlMonitor extends AbstractBolt {
         outputManager.declare(STREAM_FIELDS);
         outputManager.declareStream(STREAM_SPEAKER_ID, STREAM_SPEAKER_FIELDS);
         outputManager.declareStream(STREAM_SYNC_ID, STREAM_SYNC_FIELDS);
+        outputManager.declareStream(STREAM_MODE_ID, STREAM_MODE_FIELDS);
     }
 
     public static class OutputAdapter extends AbstractOutputAdapter {
@@ -105,6 +111,10 @@ public class FlMonitor extends AbstractBolt {
 
         public void shareSync(Sync payload) {
             emit(STREAM_SYNC_ID, new Values(payload, getContext()));
+        }
+
+        public void activateMode(OperationMode mode) {
+            emit(STREAM_MODE_ID, new Values(mode, getContext()));
         }
     }
 }

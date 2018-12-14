@@ -15,7 +15,7 @@
 
 package org.openkilda.wfm.topology.event.model;
 
-import org.openkilda.messaging.model.Switch;
+import org.openkilda.messaging.model.SpeakerSwitchView;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -27,9 +27,9 @@ import java.util.List;
 @EqualsAndHashCode
 public class Sync implements Serializable {
     @Getter
-    private final List<Switch> activeSwitches = new ArrayList<>();
+    private final List<SpeakerSwitchView> activeSwitches = new ArrayList<>();
 
-    public void addActiveSwitch(Switch switchRecord) {
-        activeSwitches.add(switchRecord);
+    public void addActiveSwitch(SpeakerSwitchView switchView) {
+        activeSwitches.add(switchView);
     }
 }

@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 @Value
-public class Switch implements Serializable {
+public class SpeakerSwitchView implements Serializable {
     @JsonProperty(value = "datapath", required = true)
     private SwitchId datapath;
 
@@ -37,14 +37,14 @@ public class Switch implements Serializable {
     private Set<Feature> features;
 
     @JsonProperty(value = "ports", required = true)
-    private List<SwitchPort> ports;
+    private List<SpeakerSwitchPortView> ports;
 
     @Builder
     @JsonCreator
-    public Switch(
+    public SpeakerSwitchView(
             @JsonProperty("datapath") SwitchId datapath,
             @JsonProperty("features") Set<Feature> features,
-            @JsonProperty("ports") List<SwitchPort> ports) {
+            @JsonProperty("ports") List<SpeakerSwitchPortView> ports) {
         this.datapath = datapath;
         this.features = ImmutableSet.copyOf(features);
         this.ports = ImmutableList.copyOf(ports);
@@ -53,6 +53,6 @@ public class Switch implements Serializable {
     public enum Feature {
         METERS,
         BFD,
-        BFD_REVIEW;
+        BFD_REVIEW
     }
 }

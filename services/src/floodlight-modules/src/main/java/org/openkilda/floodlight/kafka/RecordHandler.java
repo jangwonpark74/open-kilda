@@ -727,7 +727,7 @@ class RecordHandler implements Runnable {
             final Destination replyDestination) {
         PortConfigurationRequest request = (PortConfigurationRequest) message.getData();
         
-        logger.info("Port configuration request. Switch '{}', Port '{}'", request.getSwitchId(), 
+        logger.info("Port configuration request. Switch '{}', Port '{}'", request.getSwitchId(),
                 request.getPortNumber());
 
         final IKafkaProducerService producerService = getKafkaProducer();

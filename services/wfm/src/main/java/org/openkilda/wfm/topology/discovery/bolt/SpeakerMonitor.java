@@ -17,13 +17,14 @@ package org.openkilda.wfm.topology.discovery.bolt;
 
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.command.CommandData;
+import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.topology.discovery.model.OperationMode;
+import org.openkilda.wfm.topology.discovery.model.SpeakerSync;
 import org.openkilda.wfm.topology.discovery.service.SpeakerMonitorService;
 import org.openkilda.wfm.topology.event.bolt.SpeakerDecoder;
-import org.openkilda.wfm.topology.event.model.Sync;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.task.OutputCollector;
@@ -43,17 +44,15 @@ public class SpeakerMonitor extends AbstractBolt {
     public static final String FIELD_ID_INPUT = InputDecoder.FIELD_ID_INPUT;
     public static final String FIELD_ID_SYNC = "sync";
     public static final String FIELD_ID_MODE = "mode";
+    public static final String FIELD_ID_SWITCH_ID = "switch";
 
-    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_INPUT, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_SWITCH_ID, FIELD_ID_INPUT, FIELD_ID_CONTEXT);
 
     public static final String STREAM_SPEAKER_ID = "speaker";
     public static final Fields STREAM_SPEAKER_FIELDS = new Fields(SpeakerEncoder.FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
     public static final String STREAM_SYNC_ID = "sync";
-    public static final Fields STREAM_SYNC_FIELDS = new Fields(FIELD_ID_SYNC, FIELD_ID_CONTEXT);
-
-    public static final String STREAM_MODE_ID = "mode";
-    public static final Fields STREAM_MODE_FIELDS = new Fields(FIELD_ID_MODE, FIELD_ID_CONTEXT);
+    public static final Fields STREAM_SYNC_FIELDS = new Fields(FIELD_ID_MODE, FIELD_ID_SYNC, FIELD_ID_CONTEXT);
 
     private final long speakerOutageDelay;
     private final long dumpRequestTimeout;
@@ -93,7 +92,6 @@ public class SpeakerMonitor extends AbstractBolt {
         outputManager.declare(STREAM_FIELDS);
         outputManager.declareStream(STREAM_SPEAKER_ID, STREAM_SPEAKER_FIELDS);
         outputManager.declareStream(STREAM_SYNC_ID, STREAM_SYNC_FIELDS);
-        outputManager.declareStream(STREAM_MODE_ID, STREAM_MODE_FIELDS);
     }
 
     public static class OutputAdapter extends AbstractOutputAdapter {
@@ -101,20 +99,22 @@ public class SpeakerMonitor extends AbstractBolt {
             super(owner, tuple);
         }
 
-        public void proxyCurrentTuple() {
-            emit(tuple.select(STREAM_FIELDS));
+        public void proxySpeakerTuple(SwitchId switchId) {
+            emit(new Values(switchId,
+                            tuple.getValueByField(FIELD_ID_INPUT),
+                            tuple.getValueByField(FIELD_ID_CONTEXT)));
         }
 
         public void speakerCommand(CommandData payload) {
             emit(STREAM_SPEAKER_ID, new Values(payload, getContext()));
         }
 
-        public void shareSync(Sync payload) {
+        public void shareSync(SpeakerSync payload) {
             emit(STREAM_SYNC_ID, new Values(payload, getContext()));
         }
 
         public void activateMode(OperationMode mode) {
-            emit(STREAM_MODE_ID, new Values(mode, getContext()));
+            emit(STREAM_SYNC_ID, new Values(new SpeakerSync(mode), getContext()));
         }
     }
 }

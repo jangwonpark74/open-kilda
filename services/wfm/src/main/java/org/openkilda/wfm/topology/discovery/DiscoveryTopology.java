@@ -15,6 +15,8 @@
 
 package org.openkilda.wfm.topology.discovery;
 
+import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.spi.PersistenceProvider;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.discovery.bolt.ComponentId;
@@ -22,11 +24,14 @@ import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor;
 import org.openkilda.wfm.topology.discovery.bolt.InputDecoder;
 import org.openkilda.wfm.topology.discovery.bolt.MonotonicTick;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerEncoder;
+import org.openkilda.wfm.topology.discovery.bolt.SwitchHandler;
+import org.openkilda.wfm.topology.discovery.bolt.SwitchPreloader;
 
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.kafka.bolt.KafkaBolt;
 import org.apache.storm.kafka.spout.KafkaSpout;
 import org.apache.storm.topology.TopologyBuilder;
+import org.apache.storm.tuple.Fields;
 
 public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig> {
     public DiscoveryTopology(LaunchEnvironment env) {
@@ -39,6 +44,8 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
     @Override
     public StormTopology createTopology() {
         int scaleFactor = topologyConfig.getScaleFactor();
+        PersistenceManager persistenceManager =
+                PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
 
         TopologyBuilder topology = new TopologyBuilder();
 
@@ -46,6 +53,7 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
         input(topology, scaleFactor);
 
         speakerMonitor(topology);
+        switchPreloader(topology, persistenceManager);
         switchHandler(topology, scaleFactor);
         portHandler(topology, scaleFactor);
         islHandler(topology, scaleFactor);
@@ -75,6 +83,21 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
         topology.setBolt(SpeakerMonitor.BOLT_ID, bolt, 1)
                 .allGrouping(MonotonicTick.BOLT_ID)
                 .allGrouping(InputDecoder.BOLT_ID);
+    }
+
+    private void switchPreloader(TopologyBuilder topology, PersistenceManager persistenceManager) {
+        final SwitchPreloader bolt = new SwitchPreloader(persistenceManager);
+        topology.setBolt(SwitchPreloader.BOLT_ID, bolt, 1)
+                .globalGrouping(MonotonicTick.BOLT_ID);
+    }
+
+    private void switchHandler(TopologyBuilder topology, int scaleFactor) {
+        Fields grouping = new Fields(SpeakerMonitor.FIELD_ID_SWITCH_ID);
+        topology.setBolt(SwitchHandler.BOLT_ID, new SwitchHandler(), scaleFactor)
+                .fieldsGrouping(SwitchPreloader.BOLT_ID, grouping)
+                .fieldsGrouping(SpeakerMonitor.BOLT_ID, grouping)
+                .allGrouping(SpeakerMonitor.BOLT_ID, SpeakerMonitor.STREAM_SYNC_ID)
+                .allGrouping(MonotonicTick.BOLT_ID);
     }
 
     private void output(TopologyBuilder topology, int scaleFactor) {

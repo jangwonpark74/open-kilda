@@ -17,7 +17,11 @@ package org.openkilda.wfm.topology.discovery.service;
 
 import org.openkilda.messaging.HeartBeat;
 import org.openkilda.messaging.Message;
+import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.info.event.PortInfoData;
+import org.openkilda.messaging.info.event.SwitchInfoData;
+import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.share.utils.WatchDog;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor.OutputAdapter;
 import org.openkilda.wfm.topology.discovery.model.OperationMode;
@@ -53,7 +57,7 @@ public class SpeakerMonitorService {
         switch (state) {
             case MAIN:
                 if (!isHeartBeat) {
-                    outputAdapter.proxyCurrentTuple();
+                    proxySpeaker(outputAdapter, message);
                 }
                 break;
 
@@ -114,6 +118,14 @@ public class SpeakerMonitorService {
         outputAdapter.activateMode(OperationMode.UNMANAGED_MODE);
     }
 
+    private void proxySpeaker(OutputAdapter outputAdapter, Message message) {
+        try {
+            outputAdapter.proxySpeakerTuple(extractSwitchId(message));
+        } catch (IllegalArgumentException e) {
+            reportUnhandledEvent(message.getClass().getCanonicalName(), e.getMessage());
+        }
+    }
+
     private void feedSync(OutputAdapter outputAdapter, Message message) {
         if (message instanceof InfoMessage) {
             syncProcess.input((InfoMessage) message);
@@ -123,6 +135,27 @@ public class SpeakerMonitorService {
         } else {
             reportUnhandledEvent(message.getClass().getName());
         }
+    }
+
+    private SwitchId extractSwitchId(Message message) {
+        if (!(message instanceof InfoMessage)) {
+            throw new IllegalArgumentException(String.format("Invalid message kind: %s", message.getClass()));
+        }
+
+        return extractSwitchId(((InfoMessage) message).getData());
+    }
+
+    private SwitchId extractSwitchId(InfoData payload) {
+        SwitchId switchId;
+        if (payload instanceof SwitchInfoData) {
+            switchId = ((SwitchInfoData) payload).getSwitchId();
+        } else if (payload instanceof PortInfoData) {
+            switchId = ((PortInfoData) payload).getSwitchId();
+        } else {
+            throw new IllegalArgumentException(String.format("Invalid message payload: %s", payload.getClass()));
+        }
+
+        return switchId;
     }
 
     private void completeSync(OutputAdapter outputAdapter) {
@@ -138,8 +171,12 @@ public class SpeakerMonitorService {
         state = switchTo;
     }
 
-    private void reportUnhandledEvent(String eventDetails) {
-        log.error("State {}: can\'t handle {} event", state, eventDetails);
+    private void reportUnhandledEvent(String event) {
+        log.error("State {}: can\'t handle {} event", state, event);
+    }
+
+    private void reportUnhandledEvent(String event, String details) {
+        log.error("State {}: can\'t handle {} event - {}", state, event, details);
     }
 
     @VisibleForTesting

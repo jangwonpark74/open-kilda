@@ -13,23 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.event.model;
+package org.openkilda.wfm.topology.discovery.service;
 
-import org.openkilda.messaging.model.SpeakerSwitchView;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-
-@EqualsAndHashCode
-public class Sync implements Serializable {
-    @Getter
-    private final List<SpeakerSwitchView> activeSwitches = new ArrayList<>();
-
-    public void addActiveSwitch(SpeakerSwitchView switchView) {
-        activeSwitches.add(switchView);
-    }
+public class DiscoveryService {
 }

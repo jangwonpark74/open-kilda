@@ -15,27 +15,24 @@
 
 package org.openkilda.wfm.topology.discovery.bolt;
 
-public enum ComponentId {
-    MONOTONIC_TICK("monotonic.tick"),
+import org.openkilda.wfm.AbstractBolt;
+import org.openkilda.wfm.error.AbstractException;
 
-    INPUT("input"),
-    INPUT_DECODER("input.decoder"),
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Tuple;
 
-    FL_MONITOR("fl-monitor"),
-    SWITCH_PRELOADER("switch-preloader"),
-    SWITCH_HANDLER("switch-handler"),
+public class SwitchHandler extends AbstractBolt {
+    public static final String BOLT_ID = ComponentId.SWITCH_HANDLER.toString();
 
-    SPEAKER_ENCODER("speaker.encoder"),
-    SPEAKER_OUTPUT("speaker.output");
+    public static final String STREAM_PORTS_ID = "ports";
 
-    private final String value;
+    @Override
+    protected void handleInput(Tuple input) throws AbstractException {
 
-    ComponentId(String value) {
-        this.value = value;
     }
 
     @Override
-    public String toString() {
-        return value;
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+
     }
 }

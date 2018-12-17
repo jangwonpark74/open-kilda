@@ -24,7 +24,7 @@ import org.openkilda.messaging.info.discovery.NetworkDumpEndMarker;
 import org.openkilda.messaging.info.discovery.NetworkDumpSwitchData;
 import org.openkilda.messaging.model.SpeakerSwitchView;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor.OutputAdapter;
-import org.openkilda.wfm.topology.event.model.Sync;
+import org.openkilda.wfm.topology.discovery.model.SpeakerSync;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ public class SyncProcess {
     private boolean complete = false;
 
     @Getter
-    private final Sync payload = new Sync();
+    private final SpeakerSync payload = new SpeakerSync();
 
     public SyncProcess(OutputAdapter outputAdapter, long timestamp, long timeout) {
         correlationId = outputAdapter.getContext().getCorrelationId();

@@ -19,18 +19,26 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.AbstractException;
+import org.openkilda.wfm.topology.discovery.model.SwitchInit;
+import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
+import org.openkilda.wfm.topology.discovery.service.IPrepopulateReply;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 
 public class SwitchPreloader extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.SWITCH_PRELOADER.toString();
 
     public static final String FIELD_ID_SWITCH_ID = SpeakerMonitor.FIELD_ID_SWITCH_ID;
-    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_SWITCH_ID);
+    public static final String FIELD_ID_SWITCH_INIT = "switch-init";
+
+    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_SWITCH_ID, FIELD_ID_SWITCH_INIT);
 
     private final PersistenceManager persistenceManager;
+    private transient DiscoveryService discovery;
+
     private boolean workDone = false;
 
     public SwitchPreloader(PersistenceManager persistenceManager) {
@@ -38,7 +46,7 @@ public class SwitchPreloader extends AbstractBolt {
     }
 
     @Override
-    protected void handleInput(Tuple input) throws AbstractException {
+    protected void handleInput(Tuple input) {
         if (workDone) {
             return;
         }
@@ -46,10 +54,17 @@ public class SwitchPreloader extends AbstractBolt {
         String source = input.getSourceComponent();
         if (MonotonicTick.BOLT_ID.equals(source)) {
             workDone = true;
-            // TODO
+            discovery.prepopulate(new OutputAdapter(this, input));
         } else {
             unhandledInput(input);
         }
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+
+        discovery = new DiscoveryService(persistenceManager);
     }
 
     @Override
@@ -57,11 +72,13 @@ public class SwitchPreloader extends AbstractBolt {
         streamManager.declare(STREAM_FIELDS);
     }
 
-    public static class OutputAdapter extends AbstractOutputAdapter {
+    public static class OutputAdapter extends AbstractOutputAdapter implements IPrepopulateReply {
         public OutputAdapter(AbstractBolt owner, Tuple tuple) {
             super(owner, tuple);
         }
 
-        public void prepopulateSwitch()
+        public void prepopulateSwitch(SwitchInit switchInit) {
+            emit(new Values(switchInit.getSwitchId(), switchInit));
+        }
     }
 }

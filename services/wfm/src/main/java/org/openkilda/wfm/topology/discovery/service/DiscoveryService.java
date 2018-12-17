@@ -15,5 +15,65 @@
 
 package org.openkilda.wfm.topology.discovery.service;
 
+import org.openkilda.messaging.model.NetworkEndpoint;
+import org.openkilda.model.Isl;
+import org.openkilda.model.Switch;
+import org.openkilda.model.SwitchId;
+import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.persistence.repositories.SwitchRepository;
+import org.openkilda.wfm.topology.discovery.model.PortInit;
+import org.openkilda.wfm.topology.discovery.model.SwitchInit;
+
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Collection;
+import java.util.HashMap;
+
+@Slf4j
 public class DiscoveryService {
+    private final PersistenceManager persistenceManager;
+
+    public DiscoveryService(PersistenceManager persistenceManager) {
+        this.persistenceManager = persistenceManager;
+    }
+
+    public void prepopulate(IPrepopulateReply reply) {
+        for (SwitchInit persistent : loadPersistent()) {
+            reply.prepopulateSwitch(persistent);
+        }
+    }
+
+    private Collection<SwitchInit> loadPersistent() {
+        RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
+        SwitchRepository switchRepository = repositoryFactory.createSwitchRepository();
+
+        HashMap<SwitchId, SwitchInit> switchById = new HashMap<>();
+        for (Switch switchEntry : switchRepository.findAll()) {
+            SwitchId switchId = switchEntry.getSwitchId();
+            switchById.put(switchId, new SwitchInit(switchId));
+        }
+
+        IslRepository islRepository = repositoryFactory.createIslRepository();
+        for (Isl islEntry : islRepository.findAll()) {
+            SwitchInit swInit = switchById.get(islEntry.getSrcSwitch().getSwitchId());
+            if (swInit == null) {
+                log.error("Orphaned ISL relation - {}-{} (read race condition?)",
+                          islEntry.getSrcSwitch().getSwitchId(), islEntry.getSrcPort());
+                continue;
+            }
+
+            try {
+                NetworkEndpoint remote = new NetworkEndpoint(islEntry.getDestSwitch().getSwitchId(),
+                                                             islEntry.getDestPort());
+                swInit.addPort(new PortInit(islEntry.getSrcPort(), false, remote));
+            } catch (IllegalArgumentException e) {
+                log.error("Corrupter ISL relation endpoint(dest) - {}-{}",
+                          islEntry.getDestSwitch().getSwitchId(), islEntry.getDestPort());
+            }
+        }
+
+        return switchById.values();
+    }
 }

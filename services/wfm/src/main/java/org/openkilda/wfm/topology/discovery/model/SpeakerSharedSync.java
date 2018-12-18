@@ -15,28 +15,29 @@
 
 package org.openkilda.wfm.topology.discovery.model;
 
-import org.openkilda.messaging.model.SpeakerSwitchView;
 import org.openkilda.model.SwitchId;
 
 import lombok.Value;
 
-import java.io.Serializable;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Value
-public class SpeakerSync implements Serializable {
-    private final List<SpeakerSwitchView> activeSwitches;
+public class SpeakerSharedSync {
+    private final OperationMode mode;
 
     private final Set<SwitchId> knownSwitches;
 
-    public SpeakerSync(List<SpeakerSwitchView> activeSwitches) {
-        this.activeSwitches = Collections.unmodifiableList(activeSwitches);
+    public SpeakerSharedSync(OperationMode mode) {
+        this(mode, Collections.emptySet());
+    }
 
-        knownSwitches = this.activeSwitches.stream()
-                .map(SpeakerSwitchView::getDatapath)
-                .collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
+    public SpeakerSharedSync(Set<SwitchId> knownSwitches) {
+        this(OperationMode.MANAGED_MODE, knownSwitches);
+    }
+
+    private SpeakerSharedSync(OperationMode mode, Set<SwitchId> knownSwitches) {
+        this.mode = mode;
+        this.knownSwitches = knownSwitches;
     }
 }

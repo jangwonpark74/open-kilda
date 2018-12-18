@@ -161,8 +161,7 @@ public class SpeakerMonitorService {
     private void completeSync(OutputAdapter outputAdapter) {
         stateTransition(State.MAIN);
 
-        outputAdapter.shareSync(syncProcess.getPayload());
-        outputAdapter.activateMode(OperationMode.MANAGED_MODE);
+        outputAdapter.shareSync(syncProcess.collectResults());
         syncProcess = null;
     }
 

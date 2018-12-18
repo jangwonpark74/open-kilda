@@ -96,6 +96,7 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
         topology.setBolt(SwitchHandler.BOLT_ID, new SwitchHandler(), scaleFactor)
                 .fieldsGrouping(SwitchPreloader.BOLT_ID, grouping)
                 .fieldsGrouping(SpeakerMonitor.BOLT_ID, grouping)
+                .fieldsGrouping(SpeakerMonitor.BOLT_ID, SpeakerMonitor.STREAM_REFRESH_ID, grouping)
                 .allGrouping(SpeakerMonitor.BOLT_ID, SpeakerMonitor.STREAM_SYNC_ID)
                 .allGrouping(MonotonicTick.BOLT_ID);
     }

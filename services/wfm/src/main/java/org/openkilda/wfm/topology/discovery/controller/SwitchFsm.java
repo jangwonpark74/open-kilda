@@ -15,7 +15,19 @@
 
 package org.openkilda.wfm.topology.discovery.controller;
 
+import org.squirrelframework.foundation.fsm.StateMachineBuilder;
+import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
 import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
 public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> {
+    public static final StateMachineBuilder<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> builder;
+
+    static {
+        builder = StateMachineBuilderFactory.create(
+                SwitchFsm.class, SwitchFsmState.class, SwitchFsmEvent.class, SwitchFsmContext.class);
+    }
+
+    public static SwitchFsm create() {
+        return builder.newStateMachine(SwitchFsmState.INIT);
+    }
 }

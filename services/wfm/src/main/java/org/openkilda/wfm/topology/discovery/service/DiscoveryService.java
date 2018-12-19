@@ -15,7 +15,10 @@
 
 package org.openkilda.wfm.topology.discovery.service;
 
+import org.openkilda.messaging.info.event.PortInfoData;
+import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.messaging.model.NetworkEndpoint;
+import org.openkilda.messaging.model.SpeakerSwitchView;
 import org.openkilda.model.Isl;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
@@ -23,18 +26,27 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
-import org.openkilda.wfm.topology.discovery.bolt.SwitchHandler;
+import org.openkilda.wfm.topology.discovery.controller.SwitchFsm;
+import org.openkilda.wfm.topology.discovery.controller.SwitchFsmContext;
+import org.openkilda.wfm.topology.discovery.controller.SwitchFsmEvent;
+import org.openkilda.wfm.topology.discovery.model.OperationMode;
 import org.openkilda.wfm.topology.discovery.model.PortInit;
+import org.openkilda.wfm.topology.discovery.model.SpeakerSharedSync;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 public class DiscoveryService {
     private final PersistenceManager persistenceManager;
+
+    private final Map<SwitchId, SwitchFsm> switchController = new HashMap<>();
 
     public DiscoveryService(PersistenceManager persistenceManager) {
         this.persistenceManager = persistenceManager;
@@ -78,7 +90,126 @@ public class DiscoveryService {
         return switchById.values();
     }
 
-    public void switchAdd(SwitchInit init, SwitchHandler.OutputAdapter outputAdapter) {
+    public void switchPrecreate(SwitchInit init, ISwitchReply outputAdapter) {
+        SwitchFsm switchFsm = SwitchFsm.create();
 
+        SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
+        fsmContext.setPrecreateState(init);
+
+        switchFsm.fire(SwitchFsmEvent.HISTORY, fsmContext);
+
+        switchController.put(init.getSwitchId(), switchFsm);
+    }
+
+    public void switchRestoreManagement(SpeakerSwitchView switchView, ISwitchReply outputAdapter) {
+        SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
+        fsmContext.setOnline(true);
+        fsmContext.setInitState(switchView);
+
+        getSwitchFsmCreateIfAbsent(switchView.getDatapath())
+                .fire(SwitchFsmEvent.MANAGED, fsmContext);
+    }
+
+    public void switchSharedSync(SpeakerSharedSync sharedSync, ISwitchReply outputAdapter) {
+        switch (sharedSync.getMode()) {
+            case MANAGED_MODE:
+                // Still connected switches will be handled by {@link switchRestoreManagement}, disconnected switches
+                // must be handled here.
+                detectOfflineSwitches(sharedSync.getKnownSwitches(), outputAdapter);
+                break;
+            case UNMANAGED_MODE:
+                setAllSwitchesUnmanaged(outputAdapter);
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        String.format("Unsupported %s value %s", OperationMode.class.getName(), sharedSync.getMode()));
+        }
+    }
+
+    public void switchEvent(SwitchInfoData payload, ISwitchReply outputAdapter) {
+        SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
+        SwitchFsmEvent event = null;
+
+        switch (payload.getState()) {
+            case ACTIVATED:
+                event = SwitchFsmEvent.ONLINE;
+                fsmContext.setInitState(payload.getSwitchView());
+                break;
+            case DEACTIVATED:
+                event = SwitchFsmEvent.OFFLINE;
+                break;
+
+            default:
+                log.info("Ignore switch event {} (no need to handle it)", payload.getSwitchId());
+                break;
+        }
+
+        if (event != null) {
+            getSwitchFsmCreateIfAbsent(payload.getSwitchId())
+                    .fire(event, fsmContext);
+        }
+    }
+
+    public void portEvent(PortInfoData payload, ISwitchReply outputAdapter) {
+        SwitchFsm switchFsm = switchController.get(payload.getSwitchId());
+        if (switchFsm == null) {
+            throw new IllegalStateException(String.format("Switch not found for port event %s_%d %s",
+                                                          payload.getSwitchId(), payload.getPortNo(),
+                                                          payload.getState()));
+        }
+
+        SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
+        fsmContext.setPortNumber(payload.getPortNo());
+        SwitchFsmEvent event = null;
+        switch (payload.getState()) {
+            case ADD:
+                event = SwitchFsmEvent.PORT_ADD;
+                break;
+            case DELETE:
+                event = SwitchFsmEvent.PORT_DEL;
+                break;
+            case UP:
+                event = SwitchFsmEvent.PORT_UP;
+                break;
+            case DOWN:
+                event = SwitchFsmEvent.PORT_DOWN;
+                break;
+
+            case OTHER_UPDATE:
+            case CACHED:
+                log.error("Invalid port event {}_{} - incomplete or deprecated",
+                          payload.getSwitchId(), payload.getPortNo());
+                break;
+
+            default:
+                log.info("Ignore port event {}_{} (no need to handle it)", payload.getSwitchId(), payload.getPortNo());
+        }
+
+        if (event != null) {
+            switchFsm.fire(event, fsmContext);
+        }
+    }
+
+    private void detectOfflineSwitches(Set<SwitchId> knownSwitches, ISwitchReply outputAdapter) {
+        Set<SwitchId> extraSwitches = new HashSet<>(switchController.keySet());
+        extraSwitches.removeAll(knownSwitches);
+
+        SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
+        fsmContext.setOnline(false);
+        for (SwitchId entryId : extraSwitches) {
+            SwitchFsm switchFsm = switchController.remove(entryId);
+            switchFsm.fire(SwitchFsmEvent.MANAGED, fsmContext);
+        }
+    }
+
+    private void setAllSwitchesUnmanaged(ISwitchReply outputAdapter) {
+        SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
+        for (SwitchFsm switchFsm : switchController.values()) {
+            switchFsm.fire(SwitchFsmEvent.UNMANAGED, fsmContext);
+        }
+    }
+
+    private SwitchFsm getSwitchFsmCreateIfAbsent(SwitchId datapath) {
+        return switchController.computeIfAbsent(datapath, key -> SwitchFsm.create());
     }
 }

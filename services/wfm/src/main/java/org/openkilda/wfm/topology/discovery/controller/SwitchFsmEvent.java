@@ -16,4 +16,11 @@
 package org.openkilda.wfm.topology.discovery.controller;
 
 public enum SwitchFsmEvent {
+    HISTORY,
+
+    ONLINE,
+    OFFLINE,
+
+    MANAGED,
+    PORT_ADD, PORT_DEL, PORT_UP, PORT_DOWN, UNMANAGED
 }

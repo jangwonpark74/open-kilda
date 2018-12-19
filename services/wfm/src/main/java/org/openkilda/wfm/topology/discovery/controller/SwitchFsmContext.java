@@ -15,5 +15,24 @@
 
 package org.openkilda.wfm.topology.discovery.controller;
 
+import org.openkilda.messaging.model.SpeakerSwitchView;
+import org.openkilda.wfm.topology.discovery.model.SwitchInit;
+import org.openkilda.wfm.topology.discovery.service.ISwitchReply;
+
+import lombok.Data;
+
+@Data
 public class SwitchFsmContext {
+    private final ISwitchReply output;
+
+    private boolean online = true;
+
+    private SpeakerSwitchView initState;
+    private SwitchInit precreateState;
+
+    private Integer portNumber;
+
+    public SwitchFsmContext(ISwitchReply output) {
+        this.output = output;
+    }
 }

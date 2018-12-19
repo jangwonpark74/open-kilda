@@ -3,8 +3,10 @@
 
 state switchSync <<choice>>
 
-INIT --> prepopulate : history-data
+INIT --> prepopulate : HISTORY
 INIT --> setup : managed
+INIT --> setup : online
+INIT --> offline : offline
 
 prepopulate : setup port workers
 prepopulate : setup ISL workers
@@ -39,20 +41,17 @@ state online {
 
     PORT_PROXY --> ONLINE_PENDING : next
 }
-online --> offline : deactivate
+online --> offline : offline
 online --> unmanaged : unmanaged
 
 offline : enter / set sw state offline
 offline : enter / [emit offline for portAll()]
-offline --> setup : activate
-offline --> offline : deactivate
+offline --> setup : online
 
 unmanaged : enter / set sw state unmanaged
 unmanaged : enter / emit port-unmanaged [all ports]
-unmanaged -r-> managementRestore : managed
-
-managementRestore : enter / set sw state managed
-managementRestore : enter / emit port-managed
-managementRestore --> switchSync : next
+unmanaged : exit / set sw state managed
+unmanaged : exit / emit port-managed
+unmanaged --> switchSync : managed
 
 @enduml

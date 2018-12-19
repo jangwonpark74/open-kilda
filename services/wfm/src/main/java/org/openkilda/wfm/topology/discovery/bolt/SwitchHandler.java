@@ -15,10 +15,18 @@
 
 package org.openkilda.wfm.topology.discovery.bolt;
 
+import org.openkilda.messaging.Message;
+import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.info.event.PortInfoData;
+import org.openkilda.messaging.info.event.SwitchInfoData;
+import org.openkilda.messaging.model.SpeakerSwitchView;
+import org.openkilda.model.Port;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.discovery.model.SpeakerSharedSync;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
 import org.openkilda.wfm.topology.discovery.service.ISwitchReply;
@@ -61,7 +69,7 @@ public class SwitchHandler extends AbstractBolt {
         }
     }
 
-    private void handleSpeakerInput(Tuple input) {
+    private void handleSpeakerInput(Tuple input) throws PipelineException {
         String stream = input.getSourceStreamId();
 
         if (Utils.DEFAULT_STREAM_ID.equals(stream)) {
@@ -77,19 +85,38 @@ public class SwitchHandler extends AbstractBolt {
 
     private void handlePreloaderInput(Tuple input) throws PipelineException {
         SwitchInit init = pullValue(input, SwitchPreloader.FIELD_ID_SWITCH_INIT, SwitchInit.class);
-        discoveryService.switchAdd(init, new OutputAdapter(this, input));
+        discoveryService.switchPrecreate(init, new OutputAdapter(this, input));
     }
 
-    private void handleSpeakerMainStream(Tuple input) {
-        // TODO
+    private void handleSpeakerMainStream(Tuple input) throws PipelineException {
+        Message message = pullValue(input, SpeakerMonitor.FIELD_ID_INPUT, Message.class);
+
+        if (message instanceof InfoMessage) {
+            processSpeakerEvent(input, ((InfoMessage) message).getData());
+        } else {
+            unhandledInput(input);
+        }
     }
 
-    private void handleSpeakerRefreshStream(Tuple input) {
-        // TODO
+    private void handleSpeakerRefreshStream(Tuple input) throws PipelineException {
+        SpeakerSwitchView switchView = pullValue(input, SpeakerMonitor.FIELD_ID_REFRESH, SpeakerSwitchView.class);
+        discoveryService.switchRestoreManagement(switchView, new OutputAdapter(this, input));
     }
 
-    private void handleSpeakerSyncStream(Tuple input) {
-        // TODO
+    private void handleSpeakerSyncStream(Tuple input) throws PipelineException {
+        SpeakerSharedSync sharedSync = pullValue(input, SpeakerMonitor.FIELD_ID_SYNC, SpeakerSharedSync.class);
+        discoveryService.switchSharedSync(sharedSync, new OutputAdapter(this, input));
+    }
+
+    private void processSpeakerEvent(Tuple input, InfoData event) {
+        OutputAdapter outputAdapter = new OutputAdapter(this, input);
+        if (event instanceof SwitchInfoData) {
+            discoveryService.switchEvent((SwitchInfoData) event, outputAdapter);
+        } else if (event instanceof PortInfoData) {
+            discoveryService.portEvent((PortInfoData) event, outputAdapter);
+        } else {
+            unhandledInput(input);
+        }
     }
 
     @Override

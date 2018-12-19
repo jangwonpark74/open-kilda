@@ -21,19 +21,26 @@ setup : enter / [emit port-down for portsBecomeDown()]
 setup : enter / [emit port-up for portsBecomeUp()]
 setup --> online : next
 
-online : enter / set sw state online
-online --> online : activate
+state online {
+    online : enter / set sw state online
+    [*] --> ONLINE_PENDING
+    
+    ONLINE_PENDING --> PORT_ADD : port-add
+    ONLINE_PENDING --> PORT_DEL : port-del
+    ONLINE_PENDING --> PORT_PROXY : port-up
+    ONLINE_PENDING --> PORT_PROXY : port-down
+
+    PORT_ADD : setup port worker
+    PORT_ADD : emit port-add
+    PORT_ADD --> ONLINE_PENDING : next
+    
+    PORT_DEL : emit port-del
+    PORT_DEL --> ONLINE_PENDING : next
+
+    PORT_PROXY --> ONLINE_PENDING : next
+}
 online --> offline : deactivate
-online --> portAdd : port-add
-online --> portDel : port-del
-online -u-> unmanaged : unmanaged
-
-portAdd : setup port worker
-portAdd : emit port-add
-portAdd --> online : next
-
-portDel : emit port-del
-portDel --> online : next
+online --> unmanaged : unmanaged
 
 offline : enter / set sw state offline
 offline : enter / [emit offline for portAll()]

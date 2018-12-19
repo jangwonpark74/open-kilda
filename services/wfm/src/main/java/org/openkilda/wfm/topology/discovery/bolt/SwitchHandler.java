@@ -16,23 +16,29 @@
 package org.openkilda.wfm.topology.discovery.bolt;
 
 import org.openkilda.wfm.AbstractBolt;
-import org.openkilda.wfm.error.AbstractException;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 
 public class SwitchHandler extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.SWITCH_HANDLER.toString();
 
-    public static final String STREAM_PORTS_ID = "ports";
+    public static final String FIELD_ID_SWITCH_ID = SpeakerMonitor.FIELD_ID_SWITCH_ID;
+    public static final String FIELD_ID_PORT_NUMBER = "port-number";
+    public static final String FIELD_ID_PAYLOAD = "payload";
+
+    public static final String STREAM_PORT_ID = "ports";
+    public static final Fields STREAM_PORT_FIELDS = new Fields(FIELD_ID_SWITCH_ID, FIELD_ID_PORT_NUMBER,
+                                                               FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
     @Override
-    protected void handleInput(Tuple input) throws AbstractException {
+    protected void handleInput(Tuple input) {
 
     }
 
     @Override
-    public void declareOutputFields(OutputFieldsDeclarer declarer) {
-
+    public void declareOutputFields(OutputFieldsDeclarer streamManager) {
+        streamManager.declareStream(STREAM_PORT_ID, STREAM_PORT_FIELDS);
     }
 }

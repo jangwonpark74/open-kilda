@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.discovery.model;
+package org.openkilda.wfm.topology.discovery.controller;
 
-public class SwitchFsmContext {
+public enum PortFsmState {
 }

@@ -15,9 +15,5 @@
 
 package org.openkilda.wfm.topology.discovery.model;
 
-import org.openkilda.model.Switch;
-
-import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
-
-public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> {
+public class SwitchFsmContext {
 }

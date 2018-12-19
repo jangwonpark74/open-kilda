@@ -18,10 +18,9 @@ package org.openkilda.wfm.topology.discovery.bolt;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
-import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
-import org.openkilda.wfm.topology.discovery.service.IPrepopulateReply;
+import org.openkilda.wfm.topology.discovery.service.ISwitchPrepopulateReply;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
@@ -62,8 +61,6 @@ public class SwitchPreloader extends AbstractBolt {
 
     @Override
     protected void init() {
-        super.init();
-
         discovery = new DiscoveryService(persistenceManager);
     }
 
@@ -72,7 +69,7 @@ public class SwitchPreloader extends AbstractBolt {
         streamManager.declare(STREAM_FIELDS);
     }
 
-    public static class OutputAdapter extends AbstractOutputAdapter implements IPrepopulateReply {
+    public static class OutputAdapter extends AbstractOutputAdapter implements ISwitchPrepopulateReply {
         public OutputAdapter(AbstractBolt owner, Tuple tuple) {
             super(owner, tuple);
         }

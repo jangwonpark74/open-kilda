@@ -23,6 +23,7 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
+import org.openkilda.wfm.topology.discovery.bolt.SwitchHandler;
 import org.openkilda.wfm.topology.discovery.model.PortInit;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 
@@ -39,7 +40,7 @@ public class DiscoveryService {
         this.persistenceManager = persistenceManager;
     }
 
-    public void prepopulate(IPrepopulateReply reply) {
+    public void prepopulate(ISwitchPrepopulateReply reply) {
         for (SwitchInit persistent : loadPersistent()) {
             reply.prepopulateSwitch(persistent);
         }
@@ -75,5 +76,9 @@ public class DiscoveryService {
         }
 
         return switchById.values();
+    }
+
+    public void switchAdd(SwitchInit init, SwitchHandler.OutputAdapter outputAdapter) {
+
     }
 }

@@ -15,11 +15,18 @@
 
 package org.openkilda.wfm.topology.discovery.bolt;
 
+import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
+import org.openkilda.wfm.AbstractOutputAdapter;
+import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.discovery.model.SwitchInit;
+import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
+import org.openkilda.wfm.topology.discovery.service.ISwitchReply;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.utils.Utils;
 
 public class SwitchHandler extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.SWITCH_HANDLER.toString();
@@ -32,13 +39,72 @@ public class SwitchHandler extends AbstractBolt {
     public static final Fields STREAM_PORT_FIELDS = new Fields(FIELD_ID_SWITCH_ID, FIELD_ID_PORT_NUMBER,
                                                                FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
-    @Override
-    protected void handleInput(Tuple input) {
 
+    private final PersistenceManager persistenceManager;
+
+    private transient DiscoveryService discoveryService;
+
+    public SwitchHandler(PersistenceManager persistenceManager) {
+        this.persistenceManager = persistenceManager;
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws PipelineException {
+        String source = input.getSourceComponent();
+
+        if (SpeakerMonitor.BOLT_ID.equals(source)) {
+            handleSpeakerInput(input);
+        } else if (SwitchPreloader.BOLT_ID.equals(source)) {
+            handlePreloaderInput(input);
+        } else {
+            unhandledInput(input);
+        }
+    }
+
+    private void handleSpeakerInput(Tuple input) {
+        String stream = input.getSourceStreamId();
+
+        if (Utils.DEFAULT_STREAM_ID.equals(stream)) {
+            handleSpeakerMainStream(input);
+        } else if (SpeakerMonitor.STREAM_REFRESH_ID.equals(stream)) {
+            handleSpeakerRefreshStream(input);
+        } else if (SpeakerMonitor.STREAM_SYNC_ID.equals(stream)) {
+            handleSpeakerSyncStream(input);
+        } else {
+            unhandledInput(input);
+        }
+    }
+
+    private void handlePreloaderInput(Tuple input) throws PipelineException {
+        SwitchInit init = pullValue(input, SwitchPreloader.FIELD_ID_SWITCH_INIT, SwitchInit.class);
+        discoveryService.switchAdd(init, new OutputAdapter(this, input));
+    }
+
+    private void handleSpeakerMainStream(Tuple input) {
+        // TODO
+    }
+
+    private void handleSpeakerRefreshStream(Tuple input) {
+        // TODO
+    }
+
+    private void handleSpeakerSyncStream(Tuple input) {
+        // TODO
+    }
+
+    @Override
+    protected void init() {
+        discoveryService = new DiscoveryService(persistenceManager);
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
         streamManager.declareStream(STREAM_PORT_ID, STREAM_PORT_FIELDS);
+    }
+
+    public static class OutputAdapter extends AbstractOutputAdapter implements ISwitchReply {
+        public OutputAdapter(AbstractBolt owner, Tuple tuple) {
+            super(owner, tuple);
+        }
     }
 }

@@ -17,6 +17,6 @@ package org.openkilda.wfm.topology.discovery.service;
 
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 
-public interface IPrepopulateReply {
+public interface ISwitchPrepopulateReply {
     void prepopulateSwitch(SwitchInit switchInit);
 }

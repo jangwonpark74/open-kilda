@@ -20,10 +20,10 @@ import org.openkilda.persistence.spi.PersistenceProvider;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.discovery.bolt.ComponentId;
-import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor;
 import org.openkilda.wfm.topology.discovery.bolt.InputDecoder;
 import org.openkilda.wfm.topology.discovery.bolt.MonotonicTick;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerEncoder;
+import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor;
 import org.openkilda.wfm.topology.discovery.bolt.SwitchHandler;
 import org.openkilda.wfm.topology.discovery.bolt.SwitchPreloader;
 
@@ -54,7 +54,7 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
 
         speakerMonitor(topology);
         switchPreloader(topology, persistenceManager);
-        switchHandler(topology, scaleFactor);
+        switchHandler(topology, persistenceManager, scaleFactor);
         portHandler(topology, scaleFactor);
         islHandler(topology, scaleFactor);
 
@@ -91,14 +91,14 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
                 .globalGrouping(MonotonicTick.BOLT_ID);
     }
 
-    private void switchHandler(TopologyBuilder topology, int scaleFactor) {
+    private void switchHandler(TopologyBuilder topology, PersistenceManager persistenceManager, int scaleFactor) {
+        SwitchHandler bolt = new SwitchHandler(persistenceManager);
         Fields grouping = new Fields(SpeakerMonitor.FIELD_ID_SWITCH_ID);
-        topology.setBolt(SwitchHandler.BOLT_ID, new SwitchHandler(), scaleFactor)
+        topology.setBolt(SwitchHandler.BOLT_ID, bolt, scaleFactor)
                 .fieldsGrouping(SwitchPreloader.BOLT_ID, grouping)
                 .fieldsGrouping(SpeakerMonitor.BOLT_ID, grouping)
                 .fieldsGrouping(SpeakerMonitor.BOLT_ID, SpeakerMonitor.STREAM_REFRESH_ID, grouping)
-                .allGrouping(SpeakerMonitor.BOLT_ID, SpeakerMonitor.STREAM_SYNC_ID)
-                .allGrouping(MonotonicTick.BOLT_ID);
+                .allGrouping(SpeakerMonitor.BOLT_ID, SpeakerMonitor.STREAM_SYNC_ID);
     }
 
     private void output(TopologyBuilder topology, int scaleFactor) {

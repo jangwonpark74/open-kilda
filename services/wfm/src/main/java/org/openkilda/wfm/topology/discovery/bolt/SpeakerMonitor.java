@@ -88,9 +88,7 @@ public class SpeakerMonitor extends AbstractBolt {
     }
 
     @Override
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector outputManager) {
-        super.prepare(stormConf, context, outputManager);
-
+    protected void init() {
         monitor = new SpeakerMonitorService(speakerOutageDelay, dumpRequestTimeout, System.currentTimeMillis());
     }
 

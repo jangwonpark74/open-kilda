@@ -111,7 +111,7 @@ public class StatisticsService implements IStatisticsService, IFloodlightModule 
 
     @Override
     public void startUp(FloodlightModuleContext context) {
-        statisticsTopic = context.getServiceImpl(KafkaUtilityService.class).getTopics().getStatsTopic();
+        statisticsTopic = context.getServiceImpl(KafkaUtilityService.class).getKafkaChannel().getStatsTopic();
 
         if (interval > 0) {
             threadPoolService.getScheduledExecutor().scheduleAtFixedRate(

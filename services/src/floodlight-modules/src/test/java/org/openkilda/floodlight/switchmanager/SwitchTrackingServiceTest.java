@@ -28,7 +28,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.openkilda.config.KafkaTopicsConfig;
+import org.openkilda.floodlight.KafkaChannel;
 import org.openkilda.floodlight.error.SwitchNotFoundException;
 import org.openkilda.floodlight.service.kafka.IKafkaProducerService;
 import org.openkilda.floodlight.service.kafka.KafkaUtilityService;
@@ -99,11 +99,11 @@ public class SwitchTrackingServiceTest extends EasyMockSupport {
         iofSwitchService.addOFSwitchListener(eq(service));
         moduleContext.addService(IOFSwitchService.class, iofSwitchService);
 
-        KafkaTopicsConfig topics = createMock(KafkaTopicsConfig.class);
+        KafkaChannel topics = createMock(KafkaChannel.class);
         expect(topics.getTopoDiscoTopic()).andReturn(KAFKA_ISL_DISCOVERY_TOPIC);
 
         KafkaUtilityService kafkaUtility = createMock(KafkaUtilityService.class);
-        expect(kafkaUtility.getTopics()).andReturn(topics);
+        expect(kafkaUtility.getKafkaChannel()).andReturn(topics);
         moduleContext.addService(KafkaUtilityService.class, kafkaUtility);
 
         replay(kafkaUtility, topics, iofSwitchService);

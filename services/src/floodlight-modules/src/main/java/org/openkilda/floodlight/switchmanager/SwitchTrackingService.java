@@ -147,7 +147,7 @@ public class SwitchTrackingService implements IOFSwitchListener, IService {
         producerService = context.getServiceImpl(IKafkaProducerService.class);
         switchManager = context.getServiceImpl(ISwitchManager.class);
 
-        topoDiscoTopic = context.getServiceImpl(KafkaUtilityService.class).getTopics().getTopoDiscoTopic();
+        topoDiscoTopic = context.getServiceImpl(KafkaUtilityService.class).getKafkaChannel().getTopoDiscoTopic();
 
         context.getServiceImpl(IOFSwitchService.class).addOFSwitchListener(this);
     }

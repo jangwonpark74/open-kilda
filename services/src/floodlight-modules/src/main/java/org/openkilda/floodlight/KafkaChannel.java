@@ -78,4 +78,48 @@ public class KafkaChannel implements IFloodlightModule {
         moduleContext.getServiceImpl(IKafkaProducerService.class).setup(moduleContext);
         moduleContext.getServiceImpl(HeartBeatService.class).setup(moduleContext);
     }
+
+    public String getRegion() {
+        return config.getFloodlightRegion();
+    }
+
+    public String getSpeakerTopic() {
+        return topics.getSpeakerTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getSpeakerFlowTopic() {
+        return topics.getSpeakerFlowTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getSpeakerFlowPingTopic() {
+        return topics.getSpeakerFlowPingTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getSpeakerDiscoTopic() {
+        return topics.getSpeakerDiscoTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getStatsTopic() {
+        return topics.getStatsTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getFlowTopic() {
+        return topics.getFlowTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getTopoDiscoTopic() {
+        return topics.getTopoDiscoTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getNorthboundTopic() {
+        return topics.getNorthboundTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String getTopoEngTopic() {
+        return topics.getTopoEngTopic() + "_" + config.getFloodlightRegion();
+    }
+
+    public String  getPingTopic() {
+        return topics.getPingTopic() + "_" + config.getFloodlightRegion();
+    }
 }

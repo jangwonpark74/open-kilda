@@ -15,6 +15,7 @@
 
 package org.openkilda.floodlight.pathverification;
 
+import org.openkilda.floodlight.KafkaChannel;
 import org.openkilda.floodlight.command.Command;
 import org.openkilda.floodlight.command.CommandContext;
 import org.openkilda.floodlight.config.provider.FloodlightModuleConfigurationProvider;
@@ -168,8 +169,9 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
     @Override
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         logger.info("Stating {}", PathVerificationService.class.getCanonicalName());
-
-        topoDiscoTopic = context.getServiceImpl(KafkaUtilityService.class).getTopics().getTopoDiscoTopic();
+        KafkaChannel kafkaChannel = context.getServiceImpl(KafkaUtilityService.class).getKafkaChannel();
+        logger.error("region: {}", kafkaChannel.getRegion());
+        topoDiscoTopic = context.getServiceImpl(KafkaUtilityService.class).getKafkaChannel().getTopoDiscoTopic();
 
         InputService inputService = context.getServiceImpl(InputService.class);
         inputService.addTranslator(OFType.PACKET_IN, this);

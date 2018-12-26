@@ -63,7 +63,7 @@ public class DiscoveryManagerTest {
     private int minutesKeepRemovedIsl;
 
     /**
-     * Init method.
+     * INIT method.
      */
     @Before
     public void setUp() {

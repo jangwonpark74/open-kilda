@@ -26,9 +26,11 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
+import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsm;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmContext;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmEvent;
+import org.openkilda.wfm.topology.discovery.controller.SwitchFsmState;
 import org.openkilda.wfm.topology.discovery.model.OperationMode;
 import org.openkilda.wfm.topology.discovery.model.PortInit;
 import org.openkilda.wfm.topology.discovery.model.SpeakerSharedSync;
@@ -47,6 +49,8 @@ public class DiscoveryService {
     private final PersistenceManager persistenceManager;
 
     private final Map<SwitchId, SwitchFsm> switchController = new HashMap<>();
+    private final FsmExecutor<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> switchControllerExecutor
+            = SwitchFsm.makeExecutor();
 
     public DiscoveryService(PersistenceManager persistenceManager) {
         this.persistenceManager = persistenceManager;
@@ -96,7 +100,7 @@ public class DiscoveryService {
         SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
         fsmContext.setPrecreateState(init);
 
-        switchFsm.fire(SwitchFsmEvent.HISTORY, fsmContext);
+        switchControllerExecutor.fire(switchFsm, SwitchFsmEvent.HISTORY, fsmContext);
 
         switchController.put(init.getSwitchId(), switchFsm);
     }
@@ -106,8 +110,8 @@ public class DiscoveryService {
         fsmContext.setOnline(true);
         fsmContext.setInitState(switchView);
 
-        getSwitchFsmCreateIfAbsent(switchView.getDatapath())
-                .fire(SwitchFsmEvent.MANAGED, fsmContext);
+        SwitchFsm fsm = getSwitchFsmCreateIfAbsent(switchView.getDatapath());
+        switchControllerExecutor.fire(fsm, SwitchFsmEvent.MANAGED, fsmContext);
     }
 
     public void switchSharedSync(SpeakerSharedSync sharedSync, ISwitchReply outputAdapter) {
@@ -145,8 +149,8 @@ public class DiscoveryService {
         }
 
         if (event != null) {
-            getSwitchFsmCreateIfAbsent(payload.getSwitchId())
-                    .fire(event, fsmContext);
+            SwitchFsm fsm = getSwitchFsmCreateIfAbsent(payload.getSwitchId());
+            switchControllerExecutor.fire(fsm, event, fsmContext);
         }
     }
 
@@ -186,7 +190,7 @@ public class DiscoveryService {
         }
 
         if (event != null) {
-            switchFsm.fire(event, fsmContext);
+            switchControllerExecutor.fire(switchFsm, event, fsmContext);
         }
     }
 
@@ -198,14 +202,14 @@ public class DiscoveryService {
         fsmContext.setOnline(false);
         for (SwitchId entryId : extraSwitches) {
             SwitchFsm switchFsm = switchController.remove(entryId);
-            switchFsm.fire(SwitchFsmEvent.MANAGED, fsmContext);
+            switchControllerExecutor.fire(switchFsm, SwitchFsmEvent.MANAGED, fsmContext);
         }
     }
 
     private void setAllSwitchesUnmanaged(ISwitchReply outputAdapter) {
         SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
         for (SwitchFsm switchFsm : switchController.values()) {
-            switchFsm.fire(SwitchFsmEvent.UNMANAGED, fsmContext);
+            switchControllerExecutor.fire(switchFsm, SwitchFsmEvent.UNMANAGED, fsmContext);
         }
     }
 

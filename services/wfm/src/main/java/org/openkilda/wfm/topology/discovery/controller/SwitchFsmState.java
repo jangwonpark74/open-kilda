@@ -16,5 +16,8 @@
 package org.openkilda.wfm.topology.discovery.controller;
 
 public enum SwitchFsmState {
-    INIT
+    INIT,
+    PREPOPULATE,
+
+    SETUP
 }

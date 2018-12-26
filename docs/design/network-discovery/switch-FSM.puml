@@ -15,7 +15,6 @@ prepopulate --> INIT : next
 switchSync --> setup : is-online
 switchSync --> offline : is-offline
 
-setup : enter / set sw state online
 setup : enter / [setup portWorker for portsAdded()]
 setup : enter / [emit online for portAll()]
 setup : enter / [emit port-del for portsRemoved()]
@@ -24,7 +23,8 @@ setup : enter / [emit port-up for portsBecomeUp()]
 setup --> online : next
 
 state online {
-    online : enter / set sw state online
+    online : enter / set sw online = true
+    online : exit / set sw online = false
     [*] --> ONLINE_PENDING
     
     ONLINE_PENDING --> PORT_ADD : port-add
@@ -44,7 +44,6 @@ state online {
 online --> offline : offline
 online --> unmanaged : unmanaged
 
-offline : enter / set sw state offline
 offline : enter / [emit offline for portAll()]
 offline --> setup : online
 

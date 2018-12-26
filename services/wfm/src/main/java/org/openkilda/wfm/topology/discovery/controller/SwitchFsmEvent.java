@@ -16,6 +16,8 @@
 package org.openkilda.wfm.topology.discovery.controller;
 
 public enum SwitchFsmEvent {
+    NEXT,
+
     HISTORY,
 
     ONLINE,

@@ -15,5 +15,9 @@
 
 package org.openkilda.wfm.topology.discovery.service;
 
+import org.openkilda.model.SwitchId;
+import org.openkilda.wfm.topology.discovery.model.PortInit;
+
 public interface ISwitchReply {
+    void setupPortHandler(SwitchId switchId, PortInit portInit);
 }

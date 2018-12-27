@@ -16,8 +16,16 @@
 package org.openkilda.wfm.topology.discovery.service;
 
 import org.openkilda.model.SwitchId;
-import org.openkilda.wfm.topology.discovery.model.PortInit;
+import org.openkilda.wfm.topology.discovery.model.PortFacts;
 
 public interface ISwitchReply {
-    void setupPortHandler(SwitchId switchId, PortInit portInit);
+    void setupPortHandler(SwitchId switchId, PortFacts portFacts);
+
+    void removePortHandler(SwitchId switchId, int portNumber);
+
+    void sethOnlineStatus(SwitchId switchId, PortFacts port, boolean status);
+
+    void setManagementStatus(SwitchId switchId, PortFacts port, boolean status);
+
+    void syncPortLinkStatus(SwitchId switchId, PortFacts port);
 }

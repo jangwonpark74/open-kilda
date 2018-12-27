@@ -21,7 +21,6 @@ import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.messaging.model.SpeakerSwitchView;
-import org.openkilda.model.Port;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
@@ -85,7 +84,7 @@ public class SwitchHandler extends AbstractBolt {
 
     private void handlePreloaderInput(Tuple input) throws PipelineException {
         SwitchInit init = pullValue(input, SwitchPreloader.FIELD_ID_SWITCH_INIT, SwitchInit.class);
-        discoveryService.switchPrecreate(init, new OutputAdapter(this, input));
+        discoveryService.switchPrepopulate(init, new OutputAdapter(this, input));
     }
 
     private void handleSpeakerMainStream(Tuple input) throws PipelineException {

@@ -18,6 +18,9 @@ package org.openkilda.wfm.topology.discovery.controller;
 public enum SwitchFsmState {
     INIT,
     PREPOPULATE,
-
-    SETUP
+    SETUP,
+    ONLINE, ONLINE_PENDING, PORT_ADD, PORT_DEL, PORT_PROXY,
+    OFFLINE,
+    UNMANAGED,
+    MANAGED_DECISION
 }

@@ -32,7 +32,7 @@ import org.openkilda.wfm.topology.discovery.controller.SwitchFsmContext;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmEvent;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmState;
 import org.openkilda.wfm.topology.discovery.model.OperationMode;
-import org.openkilda.wfm.topology.discovery.model.PortInit;
+import org.openkilda.wfm.topology.discovery.model.PortFacts;
 import org.openkilda.wfm.topology.discovery.model.SpeakerSharedSync;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 
@@ -56,46 +56,18 @@ public class DiscoveryService {
         this.persistenceManager = persistenceManager;
     }
 
+    // -- {@link SwitchPreloader} responsibility --
+
     public void prepopulate(ISwitchPrepopulateReply reply) {
         for (SwitchInit persistent : loadPersistent()) {
             reply.prepopulateSwitch(persistent);
         }
     }
 
-    private Collection<SwitchInit> loadPersistent() {
-        RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
-        SwitchRepository switchRepository = repositoryFactory.createSwitchRepository();
+    // -- SwitchHandler --
 
-        HashMap<SwitchId, SwitchInit> switchById = new HashMap<>();
-        for (Switch switchEntry : switchRepository.findAll()) {
-            SwitchId switchId = switchEntry.getSwitchId();
-            switchById.put(switchId, new SwitchInit(switchId));
-        }
-
-        IslRepository islRepository = repositoryFactory.createIslRepository();
-        for (Isl islEntry : islRepository.findAll()) {
-            SwitchInit swInit = switchById.get(islEntry.getSrcSwitch().getSwitchId());
-            if (swInit == null) {
-                log.error("Orphaned ISL relation - {}-{} (read race condition?)",
-                          islEntry.getSrcSwitch().getSwitchId(), islEntry.getSrcPort());
-                continue;
-            }
-
-            try {
-                NetworkEndpoint remote = new NetworkEndpoint(islEntry.getDestSwitch().getSwitchId(),
-                                                             islEntry.getDestPort());
-                swInit.addPort(new PortInit(islEntry.getSrcPort(), false, remote));
-            } catch (IllegalArgumentException e) {
-                log.error("Corrupter ISL relation endpoint(dest) - {}-{}",
-                          islEntry.getDestSwitch().getSwitchId(), islEntry.getDestPort());
-            }
-        }
-
-        return switchById.values();
-    }
-
-    public void switchPrecreate(SwitchInit init, ISwitchReply outputAdapter) {
-        SwitchFsm switchFsm = SwitchFsm.create();
+    public void switchPrepopulate(SwitchInit init, ISwitchReply outputAdapter) {
+        SwitchFsm switchFsm = SwitchFsm.create(init.getSwitchId());
 
         SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
         fsmContext.setPrecreateState(init);
@@ -194,6 +166,40 @@ public class DiscoveryService {
         }
     }
 
+    // -- private --
+
+    private Collection<SwitchInit> loadPersistent() {
+        RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
+        SwitchRepository switchRepository = repositoryFactory.createSwitchRepository();
+
+        HashMap<SwitchId, SwitchInit> switchById = new HashMap<>();
+        for (Switch switchEntry : switchRepository.findAll()) {
+            SwitchId switchId = switchEntry.getSwitchId();
+            switchById.put(switchId, new SwitchInit(switchId));
+        }
+
+        IslRepository islRepository = repositoryFactory.createIslRepository();
+        for (Isl islEntry : islRepository.findAll()) {
+            SwitchInit swInit = switchById.get(islEntry.getSrcSwitch().getSwitchId());
+            if (swInit == null) {
+                log.error("Orphaned ISL relation - {}-{} (read race condition?)",
+                          islEntry.getSrcSwitch().getSwitchId(), islEntry.getSrcPort());
+                continue;
+            }
+
+            try {
+                NetworkEndpoint remote = new NetworkEndpoint(islEntry.getDestSwitch().getSwitchId(),
+                                                             islEntry.getDestPort());
+                swInit.addPort(new PortFacts(islEntry.getSrcPort()));
+            } catch (IllegalArgumentException e) {
+                log.error("Corrupter ISL relation endpoint(dest) - {}-{}",
+                          islEntry.getDestSwitch().getSwitchId(), islEntry.getDestPort());
+            }
+        }
+
+        return switchById.values();
+    }
+
     private void detectOfflineSwitches(Set<SwitchId> knownSwitches, ISwitchReply outputAdapter) {
         Set<SwitchId> extraSwitches = new HashSet<>(switchController.keySet());
         extraSwitches.removeAll(knownSwitches);
@@ -214,6 +220,6 @@ public class DiscoveryService {
     }
 
     private SwitchFsm getSwitchFsmCreateIfAbsent(SwitchId datapath) {
-        return switchController.computeIfAbsent(datapath, key -> SwitchFsm.create());
+        return switchController.computeIfAbsent(datapath, key -> SwitchFsm.create(datapath));
     }
 }

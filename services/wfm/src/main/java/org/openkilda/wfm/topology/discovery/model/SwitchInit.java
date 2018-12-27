@@ -27,14 +27,14 @@ import java.util.List;
 public class SwitchInit implements Serializable {
     private final SwitchId switchId;
 
-    private final List<PortInit> ports;
+    private final List<PortFacts> ports;
 
     public SwitchInit(SwitchId switchId) {
         this.switchId = switchId;
         this.ports = new ArrayList<>();
     }
 
-    public void addPort(PortInit entry) {
+    public void addPort(PortFacts entry) {
         ports.add(entry);
     }
 }

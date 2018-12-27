@@ -8,8 +8,9 @@ INIT --> setup : managed
 INIT --> setup : online
 INIT --> offline : offline
 
-prepopulate : setup port workers
-prepopulate : setup ISL workers
+prepopulate : enter / fill port-list
+prepopulate : enter / setup port workers
+prepopulate : enter / setup ISL workers
 prepopulate --> INIT : next
 
 switchSync --> setup : is-online
@@ -23,8 +24,6 @@ setup : enter / [emit port-up for portsBecomeUp()]
 setup --> online : next
 
 state online {
-    online : enter / set sw online = true
-    online : exit / set sw online = false
     [*] --> ONLINE_PENDING
     
     ONLINE_PENDING --> PORT_ADD : port-add
@@ -32,11 +31,12 @@ state online {
     ONLINE_PENDING --> PORT_PROXY : port-up
     ONLINE_PENDING --> PORT_PROXY : port-down
 
-    PORT_ADD : setup port worker
-    PORT_ADD : emit port-add
+    PORT_ADD : enter / add port to port-list
+    PORT_ADD : enter / setup port worker
     PORT_ADD --> ONLINE_PENDING : next
     
-    PORT_DEL : emit port-del
+    PORT_DEL : enter / kill port worker
+    PORT_DEL : enter / remove port from port-list
     PORT_DEL --> ONLINE_PENDING : next
 
     PORT_PROXY --> ONLINE_PENDING : next
@@ -47,10 +47,8 @@ online --> unmanaged : unmanaged
 offline : enter / [emit offline for portAll()]
 offline --> setup : online
 
-unmanaged : enter / set sw state unmanaged
 unmanaged : enter / emit port-unmanaged [all ports]
-unmanaged : exit / set sw state managed
-unmanaged : exit / emit port-managed
+unmanaged : exit / emit port-managed [all ports]
 unmanaged --> switchSync : managed
 
 @enduml

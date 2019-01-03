@@ -181,20 +181,19 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
         // emit "online = true" for all ports
         ISwitchReply output = context.getOutput();
         for (PortFacts port : portByNumber.values()) {
-            output.sethOnlineStatus(switchId, port, true);
+            output.sethOnlineMode(switchId, port.getPortNumber(), true);
         }
 
         for (PortFacts port : becomeDownPorts) {
             port.setLinkStatus(LinkStatus.DOWN);
-            output.syncPortLinkStatus(switchId, port);
+            output.syncPortLinkMode(switchId, port);
         }
 
         for (PortFacts port : becomeUpPorts) {
             port.setLinkStatus(LinkStatus.UP);
-            output.syncPortLinkStatus(switchId, port);
+            output.syncPortLinkMode(switchId, port);
         }
     }
-
 
     private void portAddEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event, SwitchFsmContext context) {
         PortFacts port = new PortFacts(context.getPortNumber());
@@ -227,7 +226,7 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
         }
 
 
-        context.getOutput().syncPortLinkStatus(switchId, port);
+        context.getOutput().syncPortLinkMode(switchId, port);
     }
 
     private void unmanagedEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event,
@@ -253,7 +252,7 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
     private void offlineEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event, SwitchFsmContext context) {
         ISwitchReply output = context.getOutput();
         for (PortFacts port : portByNumber.values()) {
-            output.sethOnlineStatus(switchId, port, false);
+            output.sethOnlineMode(switchId, port.getPortNumber(), false);
         }
     }
 
@@ -270,7 +269,7 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
     private void allPortsManagementStatusUpdate(SwitchFsmContext context, boolean status) {
         ISwitchReply output = context.getOutput();
         for (PortFacts port : portByNumber.values()) {
-            output.setManagementStatus(switchId, port, status);
+            output.setManagementMode(switchId, port.getPortNumber(), status);
         }
     }
 }

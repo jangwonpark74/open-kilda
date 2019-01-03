@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,19 +13,13 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.discovery.service;
+package org.openkilda.wfm.topology.discovery.model;
 
-import org.openkilda.model.SwitchId;
-import org.openkilda.wfm.topology.discovery.model.PortFacts;
+public class PortManagementModeCommand extends PortCommand {
+    private final boolean management;
 
-public interface ISwitchReply {
-    void setupPortHandler(SwitchId switchId, PortFacts portFacts);
-
-    void removePortHandler(SwitchId switchId, int portNumber);
-
-    void sethOnlineMode(SwitchId switchId, int portNumber, boolean mode);
-
-    void setManagementMode(SwitchId switchId, int portNumber, boolean mode);
-
-    void syncPortLinkMode(SwitchId switchId, PortFacts port);
+    public PortManagementModeCommand(int portNumber, boolean management) {
+        super(portNumber);
+        this.management = management;
+    }
 }

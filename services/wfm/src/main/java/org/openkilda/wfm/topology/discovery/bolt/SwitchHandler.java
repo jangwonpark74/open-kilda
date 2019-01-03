@@ -21,10 +21,18 @@ import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.messaging.model.SpeakerSwitchView;
+import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.discovery.model.PortCommand;
+import org.openkilda.wfm.topology.discovery.model.PortFacts;
+import org.openkilda.wfm.topology.discovery.model.PortLinkModeCommand;
+import org.openkilda.wfm.topology.discovery.model.PortManagementModeCommand;
+import org.openkilda.wfm.topology.discovery.model.PortOnlineModeCommand;
+import org.openkilda.wfm.topology.discovery.model.PortRemoveCommand;
+import org.openkilda.wfm.topology.discovery.model.PortSetupCommand;
 import org.openkilda.wfm.topology.discovery.model.SpeakerSharedSync;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
@@ -33,6 +41,7 @@ import org.openkilda.wfm.topology.discovery.service.ISwitchReply;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.Utils;
 
 public class SwitchHandler extends AbstractBolt {
@@ -131,6 +140,35 @@ public class SwitchHandler extends AbstractBolt {
     public static class OutputAdapter extends AbstractOutputAdapter implements ISwitchReply {
         public OutputAdapter(AbstractBolt owner, Tuple tuple) {
             super(owner, tuple);
+        }
+
+        @Override
+        public void setupPortHandler(SwitchId switchId, PortFacts portFacts) {
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortSetupCommand(portFacts)));
+        }
+
+        @Override
+        public void removePortHandler(SwitchId switchId, int portNumber) {
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortRemoveCommand(portNumber)));
+        }
+
+        @Override
+        public void sethOnlineMode(SwitchId switchId, int portNumber, boolean mode) {
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortOnlineModeCommand(portNumber, mode)));
+        }
+
+        @Override
+        public void setManagementMode(SwitchId switchId, int portNumber, boolean mode) {
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortManagementModeCommand(portNumber, mode)));
+        }
+
+        @Override
+        public void syncPortLinkMode(SwitchId switchId, PortFacts port) {
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortLinkModeCommand(port)));
+        }
+
+        private Values makePortTuple(SwitchId switchId, PortCommand command) {
+            return new Values(switchId, command.getPortNumber(), command, getContext());
         }
     }
 }

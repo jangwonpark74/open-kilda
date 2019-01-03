@@ -24,6 +24,7 @@ public enum ComponentId {
     FL_MONITOR("fl-monitor"),
     SWITCH_PRELOADER("switch-preloader"),
     SWITCH_HANDLER("switch-handler"),
+    PORT_HANDLER("port-handler"),
 
     SPEAKER_ENCODER("speaker.encoder"),
     SPEAKER_OUTPUT("speaker.output");

@@ -101,6 +101,14 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
                 .allGrouping(SpeakerMonitor.BOLT_ID, SpeakerMonitor.STREAM_SYNC_ID);
     }
 
+    private void portHandler(TopologyBuilder topology, PersistenceManager persistenceManager, int scaleFactor) {
+        PortHandler bolt = new PortHandler(persistenceManager);
+        Fields portGrouping = new Fields(SwitchHandler.FIELD_ID_SWITCH_ID, SwitchHandler.FIELD_ID_PORT_NUMBER);
+        topology.setBolt(PortHandler.BOLT_ID, bolt, scaleFactor)
+                .fieldsGrouping(SwitchHandler.BOLT_ID, portGrouping)
+                .allGrouping(MonotonicTick.BOLT_ID);
+    }
+
     private void output(TopologyBuilder topology, int scaleFactor) {
         SpeakerEncoder bolt = new SpeakerEncoder();
         topology.setBolt(SpeakerEncoder.BOLT_ID, bolt, scaleFactor)

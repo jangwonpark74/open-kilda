@@ -103,6 +103,7 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
     private IOFSwitchService switchService;
 
     private String topoDiscoTopic;
+    private String region;
     private double islBandwidthQuotient = 1.0;
     private Algorithm algorithm;
     private JWTVerifier verifier;
@@ -172,7 +173,7 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
         KafkaChannel kafkaChannel = context.getServiceImpl(KafkaUtilityService.class).getKafkaChannel();
         logger.error("region: {}", kafkaChannel.getRegion());
         topoDiscoTopic = context.getServiceImpl(KafkaUtilityService.class).getKafkaChannel().getTopoDiscoTopic();
-
+        region = context.getServiceImpl(KafkaUtilityService.class).getKafkaChannel().getRegion();
         InputService inputService = context.getServiceImpl(InputService.class);
         inputService.addTranslator(OFType.PACKET_IN, this);
 
@@ -416,6 +417,7 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
             long timestamp = 0;
             int pathOrdinal = 10;
             IOFSwitch remoteSwitch = null;
+            DatapathId remoteSwitchId = null;
             boolean signed = false;
             for (LLDPTLV lldptlv : verificationPacket.getOptionalTlvList()) {
                 if (lldptlv.getType() == 127 && lldptlv.getLength() == 12
@@ -424,7 +426,8 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
                         && lldptlv.getValue()[2] == (byte) 0xe1
                         && lldptlv.getValue()[3] == 0x0) {
                     ByteBuffer dpidBb = ByteBuffer.wrap(lldptlv.getValue());
-                    remoteSwitch = switchService.getSwitch(DatapathId.of(dpidBb.getLong(4)));
+                    remoteSwitchId = DatapathId.of(dpidBb.getLong(4));
+                    remoteSwitch = switchService.getSwitch(remoteSwitchId);
                 } else if (lldptlv.getType() == 127 && lldptlv.getLength() == 12
                         && lldptlv.getValue()[0] == 0x0
                         && lldptlv.getValue()[1] == 0x26
@@ -468,7 +471,7 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
             // TODO:  fix the above
 
             if (remoteSwitch == null) {
-                return;
+                logger.warn("detected unknown remote switch {}", remoteSwitchId);
             }
 
             if (!signed) {
@@ -480,18 +483,19 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
             OFPort remotePort = OFPort.of(portBb.getShort());
             long latency = measureLatency(input, timestamp);
             logIsl.info("link discovered: {}-{} ===( {} ms )===> {}-{}",
-                    remoteSwitch.getId(), remotePort, latency, input.getDpId(), inPort);
+                    remoteSwitchId, remotePort, latency, input.getDpId(), inPort);
 
             // this verification packet was sent from remote switch/port to received switch/port
             // so the link direction is from remote switch/port to received switch/port
-            PathNode source = new PathNode(new SwitchId(remoteSwitch.getId().getLong()), remotePort.getPortNumber(), 0,
+            PathNode source = new PathNode(new SwitchId(remoteSwitchId.getLong()), remotePort.getPortNumber(), 0,
                             latency);
             PathNode destination = new PathNode(new SwitchId(input.getDpId().getLong()), inPort.getPortNumber(), 1);
             long speed = getSwitchPortSpeed(input.getDpId(), inPort);
             IslInfoData path = new IslInfoData(latency, source, destination, speed, IslChangeType.DISCOVERED,
                     getAvailableBandwidth(speed));
 
-            Message message = new InfoMessage(path, System.currentTimeMillis(), CorrelationContext.getId(), null);
+            Message message = new InfoMessage(path, System.currentTimeMillis(), CorrelationContext.getId(), null,
+                    region);
 
             producerService.sendMessageAndTrack(topoDiscoTopic, message);
             logger.debug("packet_in processed for {}-{}", input.getDpId(), inPort);

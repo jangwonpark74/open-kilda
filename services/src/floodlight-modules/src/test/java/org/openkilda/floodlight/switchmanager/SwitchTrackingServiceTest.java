@@ -33,10 +33,9 @@ import org.openkilda.floodlight.error.SwitchNotFoundException;
 import org.openkilda.floodlight.service.kafka.IKafkaProducerService;
 import org.openkilda.floodlight.service.kafka.KafkaUtilityService;
 import org.openkilda.messaging.Message;
+import org.openkilda.messaging.info.ChunkedInfoMessage;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
-import org.openkilda.messaging.info.discovery.NetworkDumpBeginMarker;
-import org.openkilda.messaging.info.discovery.NetworkDumpEndMarker;
 import org.openkilda.messaging.info.discovery.NetworkDumpPortData;
 import org.openkilda.messaging.info.discovery.NetworkDumpSwitchData;
 import org.openkilda.messaging.info.event.PortChangeType;
@@ -101,7 +100,7 @@ public class SwitchTrackingServiceTest extends EasyMockSupport {
 
         KafkaChannel topics = createMock(KafkaChannel.class);
         expect(topics.getTopoDiscoTopic()).andReturn(KAFKA_ISL_DISCOVERY_TOPIC);
-
+        expect(topics.getRegion()).andReturn("1");
         KafkaUtilityService kafkaUtility = createMock(KafkaUtilityService.class);
         expect(kafkaUtility.getKafkaChannel()).andReturn(topics);
         moduleContext.addService(KafkaUtilityService.class, kafkaUtility);
@@ -335,23 +334,20 @@ public class SwitchTrackingServiceTest extends EasyMockSupport {
         verify(producerService);
 
         ArrayList<Message> expectedMessages = new ArrayList<>();
-        expectedMessages.add(new InfoMessage(new NetworkDumpBeginMarker(), 0, correlationId));
-        expectedMessages.add(new InfoMessage(
-                new NetworkDumpSwitchData(new SwitchId(swAid.getLong())), 0, correlationId));
-        expectedMessages.add(new InfoMessage(
-                new NetworkDumpPortData(new SwitchId(swAid.getLong()), 1), 0, correlationId));
-        expectedMessages.add(new InfoMessage(
-                new NetworkDumpPortData(new SwitchId(swAid.getLong()), 2), 0, correlationId));
-        expectedMessages.add(new InfoMessage(
-                new NetworkDumpSwitchData(new SwitchId(swBid.getLong())), 0, correlationId));
-        expectedMessages.add(new InfoMessage(
-                new NetworkDumpPortData(new SwitchId(swBid.getLong()), 3), 0, correlationId));
-        expectedMessages.add(new InfoMessage(
-                new NetworkDumpPortData(new SwitchId(swBid.getLong()), 4), 0, correlationId));
-        expectedMessages.add(new InfoMessage(
-                new NetworkDumpPortData(new SwitchId(swBid.getLong()), 5), 0, correlationId));
-        expectedMessages.add(new InfoMessage(new NetworkDumpEndMarker(), 0, correlationId));
-
+        expectedMessages.add(new ChunkedInfoMessage(new NetworkDumpSwitchData(new SwitchId(swAid.getLong())),
+                0, correlationId, 0, 7));
+        expectedMessages.add(new ChunkedInfoMessage(
+                new NetworkDumpPortData(new SwitchId(swAid.getLong()), 1), 0, correlationId, 1, 7));
+        expectedMessages.add(new ChunkedInfoMessage(
+                new NetworkDumpPortData(new SwitchId(swAid.getLong()), 2), 0, correlationId, 2, 7));
+        expectedMessages.add(new ChunkedInfoMessage(
+                new NetworkDumpSwitchData(new SwitchId(swBid.getLong())), 0, correlationId, 3, 7));
+        expectedMessages.add(new ChunkedInfoMessage(
+                new NetworkDumpPortData(new SwitchId(swBid.getLong()), 3), 0, correlationId, 4, 7));
+        expectedMessages.add(new ChunkedInfoMessage(
+                new NetworkDumpPortData(new SwitchId(swBid.getLong()), 4), 0, correlationId, 5, 7));
+        expectedMessages.add(new ChunkedInfoMessage(
+                new NetworkDumpPortData(new SwitchId(swBid.getLong()), 5), 0, correlationId, 6, 7));
         assertEquals(expectedMessages, producedMessages);
     }
 }

@@ -61,6 +61,7 @@ public class Message extends BaseMessage {
         super(timestamp);
         this.correlationId = correlationId;
         this.destination = destination;
+
     }
 
     /**

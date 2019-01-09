@@ -129,7 +129,7 @@ public class OfeLinkBoltTest extends AbstractStormTest {
 
         // when
         PortInfoData dumpPortData = new PortInfoData(new SwitchId("ff:01"), 2, PortChangeType.UP);
-        InfoMessage dumpBeginMessage = new InfoMessage(dumpPortData, 0, DEFAULT_CORRELATION_ID, Destination.WFM);
+        InfoMessage dumpBeginMessage = new InfoMessage(dumpPortData, 0, DEFAULT_CORRELATION_ID, Destination.WFM, null);
         Tuple tuple = new TupleImpl(context, new Values(objectMapper.writeValueAsString(dumpBeginMessage)),
                 TASK_ID_BOLT, STREAM_ID_INPUT);
         bolt.doWork(tuple);
@@ -166,7 +166,7 @@ public class OfeLinkBoltTest extends AbstractStormTest {
         PathNode source = new PathNode(switchId, port, 0);
         PathNode destination = new PathNode(switchId, port, 1);
         IslInfoData isl = new IslInfoData(source, destination, IslChangeType.DISCOVERED);
-        InfoMessage inputMessage = new InfoMessage(isl, 0, DEFAULT_CORRELATION_ID, Destination.WFM);
+        InfoMessage inputMessage = new InfoMessage(isl, 0, DEFAULT_CORRELATION_ID, Destination.WFM, null);
         Tuple tuple = new TupleImpl(context, new Values(objectMapper.writeValueAsString(inputMessage)),
                 TASK_ID_BOLT, STREAM_ID_INPUT);
         bolt.doWork(tuple);

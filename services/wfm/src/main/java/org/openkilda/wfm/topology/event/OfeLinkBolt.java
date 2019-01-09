@@ -28,11 +28,10 @@ import org.openkilda.messaging.command.discovery.DiscoverIslCommandData;
 import org.openkilda.messaging.command.discovery.NetworkCommandData;
 import org.openkilda.messaging.ctrl.AbstractDumpState;
 import org.openkilda.messaging.ctrl.state.OFELinkBoltState;
+import org.openkilda.messaging.info.ChunkedInfoMessage;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.discovery.DiscoPacketSendingConfirmation;
-import org.openkilda.messaging.info.discovery.NetworkDumpBeginMarker;
-import org.openkilda.messaging.info.discovery.NetworkDumpEndMarker;
 import org.openkilda.messaging.info.discovery.NetworkDumpPortData;
 import org.openkilda.messaging.info.discovery.NetworkDumpSwitchData;
 import org.openkilda.messaging.info.event.IslChangeType;
@@ -127,6 +126,8 @@ public class OfeLinkBolt
     private String dumpRequestCorrelationId = null;
     private float dumpRequestTimeout;
     private Timer dumpRequestTimer;
+    private int switchExpectedCounter = 0;
+    private int receivedMessageCounter = 0;
     @VisibleForTesting
     State state = State.NEED_SYNC;
 
@@ -355,12 +356,16 @@ public class OfeLinkBolt
     }
 
     private void dispatchWaitSync(Tuple tuple, InfoMessage infoMessage) {
-        InfoData data = infoMessage.getData();
-        if (data instanceof NetworkDumpBeginMarker) {
-            if (dumpRequestCorrelationId.equals(infoMessage.getCorrelationId())) {
+        if (infoMessage instanceof ChunkedInfoMessage) {
+            ChunkedInfoMessage chunkedInfoMessage = (ChunkedInfoMessage) infoMessage;
+
+            if (chunkedInfoMessage.getMessageId().startsWith("0 :")
+                    && dumpRequestCorrelationId.equals(infoMessage.getCorrelationId())) {
                 logger.info("Got response on network sync request, start processing network events");
                 enableDumpRequestTimer();
                 stateTransition(State.SYNC_IN_PROGRESS);
+                switchExpectedCounter += chunkedInfoMessage.getTotalMessages();
+                receivedMessageCounter += 1;
             } else {
                 logger.warn(
                         "Got response on network sync request with invalid "
@@ -368,7 +373,7 @@ public class OfeLinkBolt
                         dumpRequestCorrelationId, infoMessage.getCorrelationId());
             }
         } else {
-            reportInvalidEvent(data);
+            reportInvalidEvent(infoMessage.getData());
         }
     }
 
@@ -382,8 +387,11 @@ public class OfeLinkBolt
             logger.info("Event/WFM Sync: port {}", data);
             NetworkDumpPortData portData = (NetworkDumpPortData) data;
             discovery.registerPort(portData.getSwitchId(), portData.getPortNo());
-
-        } else if (data instanceof NetworkDumpEndMarker) {
+            receivedMessageCounter++;
+            if (receivedMessageCounter == switchExpectedCounter) {
+                stateTransition(State.MAIN);
+            }
+        } else if (data == null) {
             logger.info("End of network sync stream received");
             stateTransition(State.MAIN);
         } else {

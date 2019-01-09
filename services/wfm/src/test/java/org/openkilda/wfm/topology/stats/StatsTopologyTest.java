@@ -124,7 +124,7 @@ public class StatsTopologyTest extends StableAbstractStormTest {
         }).collect(toList());
         final List<PortStatsReply> replies = Collections.singletonList(new PortStatsReply(1, entries));
         InfoMessage message = new InfoMessage(new PortStatsData(switchId, replies), timestamp, CORRELATION_ID,
-                Destination.WFM_STATS);
+                Destination.WFM_STATS, null);
 
         //mock kafka spout
         MockedSources sources = new MockedSources();
@@ -158,7 +158,7 @@ public class StatsTopologyTest extends StableAbstractStormTest {
         final List<MeterConfigReply> stats =
                 Collections.singletonList(new MeterConfigReply(2, Arrays.asList(1L, 2L, 3L)));
         InfoMessage message = new InfoMessage(new MeterConfigStatsData(switchId, stats), timestamp, CORRELATION_ID,
-                Destination.WFM_STATS);
+                Destination.WFM_STATS, null);
 
         //mock kafka spout
         MockedSources sources = new MockedSources();
@@ -226,7 +226,7 @@ public class StatsTopologyTest extends StableAbstractStormTest {
                 new FlowStatsEntry((short) 1, cookie, 1500L, 3000L));
         final List<FlowStatsReply> stats = Collections.singletonList(new FlowStatsReply(3, entries));
         InfoMessage message = new InfoMessage(new FlowStatsData(switchId, stats),
-                timestamp, CORRELATION_ID, Destination.WFM_STATS);
+                timestamp, CORRELATION_ID, Destination.WFM_STATS, null);
 
         sources.addMockData(StatsComponentType.STATS_OFS_KAFKA_SPOUT.toString(),
                 new Values(MAPPER.writeValueAsString(message)));

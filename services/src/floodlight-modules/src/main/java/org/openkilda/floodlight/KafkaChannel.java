@@ -84,42 +84,50 @@ public class KafkaChannel implements IFloodlightModule {
     }
 
     public String getSpeakerTopic() {
-        return topics.getSpeakerTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getSpeakerTopic());
     }
 
     public String getSpeakerFlowTopic() {
-        return topics.getSpeakerFlowTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getSpeakerFlowTopic());
     }
 
     public String getSpeakerFlowPingTopic() {
-        return topics.getSpeakerFlowPingTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getSpeakerFlowPingTopic());
     }
 
     public String getSpeakerDiscoTopic() {
-        return topics.getSpeakerDiscoTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getSpeakerDiscoTopic());
     }
 
     public String getStatsTopic() {
-        return topics.getStatsTopic() + "_" + config.getFloodlightRegion();
+        return topics.getStatsTopic();
     }
 
     public String getFlowTopic() {
-        return topics.getFlowTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getFlowTopic());
     }
 
     public String getTopoDiscoTopic() {
-        return topics.getTopoDiscoTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getTopoDiscoTopic());
     }
 
     public String getNorthboundTopic() {
-        return topics.getNorthboundTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getNorthboundTopic());
     }
 
     public String getTopoEngTopic() {
-        return topics.getTopoEngTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getTopoEngTopic());
     }
 
     public String  getPingTopic() {
-        return topics.getPingTopic() + "_" + config.getFloodlightRegion();
+        return formatTopicWithRegion(topics.getPingTopic());
+    }
+
+    private String formatTopicWithRegion(String topic) {
+        String region =  config.getFloodlightRegion();
+        if (region == null) {
+            return topic;
+        }
+        return String.format("%s_%s", topic, region);
     }
 }

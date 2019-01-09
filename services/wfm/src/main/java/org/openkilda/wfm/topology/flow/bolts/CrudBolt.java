@@ -287,7 +287,7 @@ public class CrudBolt
         initFlowResourcesManager();
 
         Values values = new Values(new InfoMessage(new FlowCacheSyncResponse(),
-                message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND));
+                message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND, null));
         outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
     }
 
@@ -317,7 +317,7 @@ public class CrudBolt
 
             Values values = new Values(new InfoMessage(
                     new FlowStatusResponse(new FlowIdStatusPayload(flowId, FlowMapper.INSTANCE.map(flowStatus))),
-                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND));
+                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND, null));
             outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
         } catch (FlowAlreadyExistException e) {
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
@@ -350,7 +350,7 @@ public class CrudBolt
 
             Values values = new Values(new InfoMessage(
                     new FlowStatusResponse(new FlowIdStatusPayload(flowId, FlowState.DOWN)),
-                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND));
+                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND, null));
             outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
         } catch (FlowNotFoundException e) {
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
@@ -371,7 +371,7 @@ public class CrudBolt
             logger.info("Deleted the flow: {}", deletedFlow);
 
             Values values = new Values(new InfoMessage(buildFlowResponse(deletedFlow.getForward()),
-                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND));
+                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND, null));
             outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
         } catch (FlowNotFoundException e) {
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
@@ -394,7 +394,7 @@ public class CrudBolt
             logger.info("Created the flow: {}", createdFlow);
 
             Values values = new Values(new InfoMessage(buildFlowResponse(createdFlow.getForward()),
-                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND));
+                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND, null));
             outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
         } catch (FlowValidationException e) {
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
@@ -438,7 +438,7 @@ public class CrudBolt
 
             FlowRerouteResponse response = new FlowRerouteResponse(resultPath, !resultPath.equals(currentPath));
             Values values = new Values(new InfoMessage(response, message.getTimestamp(),
-                    message.getCorrelationId(), Destination.NORTHBOUND));
+                    message.getCorrelationId(), Destination.NORTHBOUND, null));
             outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
         } catch (FlowNotFoundException e) {
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
@@ -466,7 +466,7 @@ public class CrudBolt
             logger.info("Updated the flow: {}", updatedFlow);
 
             Values values = new Values(new InfoMessage(buildFlowResponse(updatedFlow.getForward()),
-                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND));
+                    message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND, null));
             outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
         } catch (FlowValidationException e) {
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
@@ -519,7 +519,7 @@ public class CrudBolt
         logger.debug("Got bidirectional flow: {}, correlationId {}", flow, message.getCorrelationId());
 
         Values values = new Values(new InfoMessage(new FlowReadResponse(flow),
-                message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND));
+                message.getTimestamp(), message.getCorrelationId(), Destination.NORTHBOUND, null));
         outputCollector.emit(StreamType.RESPONSE.toString(), tuple, values);
     }
 

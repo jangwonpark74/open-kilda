@@ -490,7 +490,7 @@ class RecordHandler implements Runnable {
 
             SwitchRulesResponse response = new SwitchRulesResponse(installedRules);
             InfoMessage infoMessage = new InfoMessage(response,
-                    System.currentTimeMillis(), message.getCorrelationId(), replyDestination);
+                    System.currentTimeMillis(), message.getCorrelationId(), replyDestination, null);
             producerService.sendMessageAndTrack(replyToTopic, infoMessage);
 
         } catch (SwitchOperationException e) {
@@ -565,7 +565,7 @@ class RecordHandler implements Runnable {
 
             SwitchRulesResponse response = new SwitchRulesResponse(removedRules);
             InfoMessage infoMessage = new InfoMessage(response,
-                    System.currentTimeMillis(), message.getCorrelationId(), replyDestination);
+                    System.currentTimeMillis(), message.getCorrelationId(), replyDestination, null);
             producerService.sendMessageAndTrack(replyToTopic, infoMessage);
 
         } catch (SwitchNotFoundException e) {
@@ -599,7 +599,7 @@ class RecordHandler implements Runnable {
         ConnectModeResponse response = new ConnectModeResponse(result);
         InfoMessage infoMessage = new InfoMessage(response,
                 System.currentTimeMillis(), message.getCorrelationId(),
-                getDestinationForTopic(context.getKafkaNorthboundTopic()));
+                getDestinationForTopic(context.getKafkaNorthboundTopic()), null);
         getKafkaProducer().sendMessageAndTrack(context.getKafkaNorthboundTopic(), infoMessage);
 
     }
@@ -722,7 +722,7 @@ class RecordHandler implements Runnable {
                     .anyMatch(config -> config.getMeterId() == request.getMeterId());
             DeleteMeterResponse response = new DeleteMeterResponse(deleted);
             InfoMessage infoMessage = new InfoMessage(response, System.currentTimeMillis(), message.getCorrelationId(),
-                    replyDestination);
+                    replyDestination, null);
             producerService.sendMessageAndTrack(replyToTopic, infoMessage);
         } catch (SwitchOperationException e) {
             logger.error("Failed to delete meter {} from switch {}: {}", request.getMeterId(), request.getSwitchId(),

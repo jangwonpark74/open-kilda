@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.discovery.service;
 
+import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.messaging.model.NetworkEndpoint;
@@ -27,10 +28,13 @@ import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.share.utils.FsmExecutor;
+import org.openkilda.wfm.topology.discovery.controller.PortFsm;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsm;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmContext;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmEvent;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmState;
+import org.openkilda.wfm.topology.discovery.model.Endpoint;
+import org.openkilda.wfm.topology.discovery.model.IslFacts;
 import org.openkilda.wfm.topology.discovery.model.OperationMode;
 import org.openkilda.wfm.topology.discovery.model.PortFacts;
 import org.openkilda.wfm.topology.discovery.model.SpeakerSharedSync;
@@ -49,6 +53,7 @@ public class DiscoveryService {
     private final PersistenceManager persistenceManager;
 
     private final Map<SwitchId, SwitchFsm> switchController = new HashMap<>();
+    private final Map<Endpoint, PortFsm> portController = new HashMap<>();
     private final FsmExecutor<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> switchControllerExecutor
             = SwitchFsm.makeExecutor();
 
@@ -82,7 +87,7 @@ public class DiscoveryService {
         fsmContext.setOnline(true);
         fsmContext.setInitState(switchView);
 
-        SwitchFsm fsm = getSwitchFsmCreateIfAbsent(switchView.getDatapath());
+        SwitchFsm fsm = locateSwitchFsmCreateIfAbsent(switchView.getDatapath());
         switchControllerExecutor.fire(fsm, SwitchFsmEvent.MANAGED, fsmContext);
     }
 
@@ -121,19 +126,22 @@ public class DiscoveryService {
         }
 
         if (event != null) {
-            SwitchFsm fsm = getSwitchFsmCreateIfAbsent(payload.getSwitchId());
+            SwitchFsm fsm = locateSwitchFsmCreateIfAbsent(payload.getSwitchId());
             switchControllerExecutor.fire(fsm, event, fsmContext);
         }
     }
 
-    public void portEvent(PortInfoData payload, ISwitchReply outputAdapter) {
-        SwitchFsm switchFsm = switchController.get(payload.getSwitchId());
-        if (switchFsm == null) {
-            throw new IllegalStateException(String.format("Switch not found for port event %s_%d %s",
-                                                          payload.getSwitchId(), payload.getPortNo(),
-                                                          payload.getState()));
-        }
+    public void switchIslDiscovery(IslInfoData payload, ISwitchReply outputAdapter) {
+        IslFacts islFacts = new IslFacts(payload);
+        SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
+        fsmContext.setIslFacts(islFacts);
 
+        SwitchFsm switchFsm = locateSwitchFsm(islFacts.getDest().getDatapath());
+        switchControllerExecutor.fire(switchFsm, SwitchFsmEvent.ISL_DISCOVERY, fsmContext);
+    }
+
+    public void portEvent(PortInfoData payload, ISwitchReply outputAdapter) {
+        SwitchFsm switchFsm = locateSwitchFsm(payload.getSwitchId());
         SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
         fsmContext.setPortNumber(payload.getPortNo());
         SwitchFsmEvent event = null;
@@ -164,6 +172,14 @@ public class DiscoveryService {
         if (event != null) {
             switchControllerExecutor.fire(switchFsm, event, fsmContext);
         }
+    }
+
+    // -- PortHandler --
+
+    // -- common --
+
+    public void timerTick(long tickTime) {
+        // TODO
     }
 
     // -- private --
@@ -219,7 +235,15 @@ public class DiscoveryService {
         }
     }
 
-    private SwitchFsm getSwitchFsmCreateIfAbsent(SwitchId datapath) {
+    private SwitchFsm locateSwitchFsm(SwitchId datapath) {
+        SwitchFsm switchFsm = switchController.get(datapath);
+        if (switchFsm == null) {
+            throw new IllegalStateException(String.format("Switch FSM not found (%s).", datapath);
+        }
+        return switchFsm;
+    }
+
+    private SwitchFsm locateSwitchFsmCreateIfAbsent(SwitchId datapath) {
         return switchController.computeIfAbsent(datapath, key -> SwitchFsm.create(datapath));
     }
 }

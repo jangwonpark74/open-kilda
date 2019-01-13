@@ -1,5 +1,4 @@
-/*
- * Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -14,10 +13,22 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.discovery.controller;
+package org.openkilda.wfm.topology.discovery.model;
 
-import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
+import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
+import org.openkilda.wfm.topology.discovery.service.IPortReply;
 
-public class PortFsm extends AbstractStateMachine<PortFsm, PortFsmState, PortFsmEvent, PortFsmContext> {
+public class PortDiscoveryCommand extends PortCommand {
+    private final IslFacts islFacts;
 
+    public PortDiscoveryCommand(IslFacts islFacts) {
+        super(islFacts.getDest().getPortNumber());
+
+        this.islFacts = islFacts;
+    }
+
+    @Override
+    public void apply(DiscoveryService service, IPortReply output) {
+        // TODO
+    }
 }

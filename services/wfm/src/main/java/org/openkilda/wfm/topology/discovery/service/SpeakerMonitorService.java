@@ -19,6 +19,7 @@ import org.openkilda.messaging.HeartBeat;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.model.SwitchId;
@@ -147,7 +148,9 @@ public class SpeakerMonitorService {
 
     private SwitchId extractSwitchId(InfoData payload) {
         SwitchId switchId;
-        if (payload instanceof SwitchInfoData) {
+        if (payload instanceof IslInfoData) {
+            switchId = ((IslInfoData) payload).getDestination().getSwitchId();
+        } else if (payload instanceof SwitchInfoData) {
             switchId = ((SwitchInfoData) payload).getSwitchId();
         } else if (payload instanceof PortInfoData) {
             switchId = ((PortInfoData) payload).getSwitchId();

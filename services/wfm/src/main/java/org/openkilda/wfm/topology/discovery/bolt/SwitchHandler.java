@@ -18,6 +18,7 @@ package org.openkilda.wfm.topology.discovery.bolt;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.messaging.model.SpeakerSwitchView;
@@ -26,7 +27,9 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.discovery.model.IslFacts;
 import org.openkilda.wfm.topology.discovery.model.PortCommand;
+import org.openkilda.wfm.topology.discovery.model.PortDiscoveryCommand;
 import org.openkilda.wfm.topology.discovery.model.PortFacts;
 import org.openkilda.wfm.topology.discovery.model.PortLinkModeCommand;
 import org.openkilda.wfm.topology.discovery.model.PortManagementModeCommand;
@@ -118,7 +121,9 @@ public class SwitchHandler extends AbstractBolt {
 
     private void processSpeakerEvent(Tuple input, InfoData event) {
         OutputAdapter outputAdapter = new OutputAdapter(this, input);
-        if (event instanceof SwitchInfoData) {
+        if (event instanceof IslInfoData) {
+            discoveryService.switchIslDiscovery((IslInfoData) event, outputAdapter);
+        } else if (event instanceof SwitchInfoData) {
             discoveryService.switchEvent((SwitchInfoData) event, outputAdapter);
         } else if (event instanceof PortInfoData) {
             discoveryService.portEvent((PortInfoData) event, outputAdapter);
@@ -165,6 +170,11 @@ public class SwitchHandler extends AbstractBolt {
         @Override
         public void syncPortLinkMode(SwitchId switchId, PortFacts port) {
             emit(STREAM_PORT_ID, makePortTuple(switchId, new PortLinkModeCommand(port)));
+        }
+
+        @Override
+        public void proxyDiscoveryEvent(SwitchId switchId, IslFacts islFacts) {
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortDiscoveryCommand(islFacts)));
         }
 
         private Values makePortTuple(SwitchId switchId, PortCommand command) {

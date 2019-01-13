@@ -28,7 +28,7 @@ Output signals:
 [*] --> INIT
 
 INIT -r-> PREPOPULATE : remote-data
-INIT --> OFFLINE : offline
+INIT --> BECOME_OFFLINE : offline
 INIT --> OPERATIONAL : online
 
 PREPOPULATE : enter / set remote
@@ -85,32 +85,35 @@ state OPERATIONAL {
     becomeUndiscovered --> DOWN : next
 }
 
-OPERATIONAL --> OFFLINE : offline
-OPERATIONAL --> becomeDISABLED : disable
-OPERATIONAL --> becomeUNMANAGED : port-unmanaged
+OPERATIONAL --> BECOME_OFFLINE : offline
+OPERATIONAL --> BECOME_DISABLED : disable
+OPERATIONAL --> BECOME_UNMANAGED : port-unmanaged
 
-becomeDISABLED : enter / emit isl-disable if have remote
-becomeDISABLED --> DISABLED : next
+BECOME_OFFLINE --> UNOPERATIONAL : next
+BECOME_OFFLINE : enter / set online = false
 
-becomeUNMANAGED : enter / emit isl-unmanaged if have remote
-becomeUNMANAGED --> UNMANAGED : next
+BECOME_DISABLED --> UNOPERATIONAL : next
+BECOME_DISABLED : enter / set enabled = false
+BECOME_DISABLED : enter / emit isl-disable if have remote
 
-DISABLED --> OPERATIONAL : enable
-DISABLED --> DISABLED_OFFLINE : offline
-DISABLED --> DISABLED_UNMANAGED : port-unmanaged
+BECOME_UNMANAGED --> UNOPERATIONAL : next
+BECOME_UNMANAGED : enter / set managed = false
+BECOME_UNMANAGED : enter / emit isl-unmanaged if have remote
 
-UNMANAGED --> OPERATIONAL : port-managed
-UNMANAGED --> DISABLED : disable
-UNMANAGED --> OFFLINE : offline
+state UNOPERATIONAL {
+    [*] --> PENDING
 
-OFFLINE --> OPERATIONAL : online
-OFFLINE --> DISABLED : disable
-OFFLINE --> UNMANAGED : port-unmanaged
+    state OPERATIONAL_DECISION <<choice>>
 
-DISABLED_OFFLINE --> DISABLED : online
-DISABLED_OFFLINE --> OFFLINE : enable
+    PENDING --> OPERATIONAL_DECISION : online (set online = true)
+    PENDING --> OPERATIONAL_DECISION : offline (set online = false)
+    PENDING --> OPERATIONAL_DECISION : disable (set enabled = false)
+    PENDING --> OPERATIONAL_DECISION : enable (set enabled = true)
+    PENDING --> OPERATIONAL_DECISION : port-unmanaged (set managed = false)
+    PENDING --> OPERATIONAL_DECISION : port-managed (set managed = true)
 
-DISABLED_UNMANAGED --> DISABLED : port-managed
-DISABLED_UNMANAGED --> UNMANAGED : enable
+    OPERATIONAL_DECISION --> PENDING : next
+    OPERATIONAL_DECISION -u-> OPERATIONAL : next
+}
 
 @enduml

@@ -22,6 +22,7 @@ import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.discovery.bolt.ComponentId;
 import org.openkilda.wfm.topology.discovery.bolt.InputDecoder;
 import org.openkilda.wfm.topology.discovery.bolt.MonotonicTick;
+import org.openkilda.wfm.topology.discovery.bolt.PortHandler;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerEncoder;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerMonitor;
 import org.openkilda.wfm.topology.discovery.bolt.SwitchHandler;
@@ -55,7 +56,7 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
         speakerMonitor(topology);
         switchPreloader(topology, persistenceManager);
         switchHandler(topology, persistenceManager, scaleFactor);
-        portHandler(topology, scaleFactor);
+        portHandler(topology, persistenceManager, scaleFactor);
         islHandler(topology, scaleFactor);
 
         output(topology, scaleFactor);

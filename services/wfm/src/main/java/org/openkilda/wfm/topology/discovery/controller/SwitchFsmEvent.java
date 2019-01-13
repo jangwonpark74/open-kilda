@@ -25,5 +25,6 @@ public enum SwitchFsmEvent {
 
     MANAGED,
     PORT_ADD, PORT_DEL, PORT_UP, PORT_DOWN,
+    ISL_DISCOVERY,
     UNMANAGED
 }

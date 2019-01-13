@@ -71,6 +71,8 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
                 .on(SwitchFsmEvent.PORT_ADD);
         builder.transition().from(SwitchFsmState.ONLINE_PENDING).to(SwitchFsmState.PORT_DEL)
                 .on(SwitchFsmEvent.PORT_DEL);
+        builder.transition().from(SwitchFsmState.ONLINE_PENDING).to(SwitchFsmState.ISL_PROXY)
+                .on(SwitchFsmEvent.ISL_DISCOVERY);
 
         builder.transition().from(SwitchFsmState.PORT_PROXY).to(SwitchFsmState.ONLINE_PENDING).on(SwitchFsmEvent.NEXT);
 
@@ -78,9 +80,12 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
 
         builder.transition().from(SwitchFsmState.PORT_DEL).to(SwitchFsmState.ONLINE_PENDING).on(SwitchFsmEvent.NEXT);
 
+        builder.transition().from(SwitchFsmState.ISL_PROXY).to(SwitchFsmState.ONLINE_PENDING).on(SwitchFsmEvent.NEXT);
+
         builder.defineSequentialStatesOn(SwitchFsmState.ONLINE,
                                          SwitchFsmState.ONLINE_PENDING, SwitchFsmState.PORT_PROXY,
-                                         SwitchFsmState.PORT_ADD, SwitchFsmState.PORT_DEL);
+                                         SwitchFsmState.PORT_ADD, SwitchFsmState.PORT_DEL,
+                                         SwitchFsmState.ISL_PROXY);
 
         builder.transition()
                 .from(SwitchFsmState.UNMANAGED).to(SwitchFsmState.MANAGED_DECISION).on(SwitchFsmEvent.MANAGED);
@@ -104,6 +109,9 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
 
         builder.onEntry(SwitchFsmState.PORT_PROXY)
                 .callMethod("portProxyEnter");
+
+        builder.onEntry(SwitchFsmState.ISL_PROXY)
+                .callMethod("islProxyEnter");
 
         builder.onEntry(SwitchFsmState.UNMANAGED)
                 .callMethod("unmanagedEnter");
@@ -227,6 +235,10 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
 
 
         context.getOutput().syncPortLinkMode(switchId, port);
+    }
+
+    private void islProxyEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event, SwitchFsmContext context) {
+        context.getOutput().proxyDiscoveryEvent(switchId, context.getIslFacts());
     }
 
     private void unmanagedEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event,

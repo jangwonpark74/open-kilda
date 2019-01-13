@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.discovery.service;
 
 import org.openkilda.model.SwitchId;
+import org.openkilda.wfm.topology.discovery.model.IslFacts;
 import org.openkilda.wfm.topology.discovery.model.PortFacts;
 
 public interface ISwitchReply {
@@ -28,4 +29,6 @@ public interface ISwitchReply {
     void setManagementMode(SwitchId switchId, int portNumber, boolean mode);
 
     void syncPortLinkMode(SwitchId switchId, PortFacts port);
+
+    void proxyDiscoveryEvent(SwitchId switchId, IslFacts islFacts);
 }

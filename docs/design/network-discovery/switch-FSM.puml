@@ -30,6 +30,7 @@ state online {
     ONLINE_PENDING --> PORT_DEL : port-del
     ONLINE_PENDING --> PORT_PROXY : port-up
     ONLINE_PENDING --> PORT_PROXY : port-down
+    ONLINE_PENDING --> ISL_PROXY : discovery
 
     PORT_ADD : enter / add port to port-list
     PORT_ADD : enter / setup port worker
@@ -40,6 +41,7 @@ state online {
     PORT_DEL --> ONLINE_PENDING : next
 
     PORT_PROXY --> ONLINE_PENDING : next
+    ISL_PROXY --> ONLINE_PENDING : next
 }
 online --> offline : offline
 online --> unmanaged : unmanaged

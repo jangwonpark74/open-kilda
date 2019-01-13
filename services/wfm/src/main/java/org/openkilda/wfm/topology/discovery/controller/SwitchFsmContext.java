@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.discovery.controller;
 
 import org.openkilda.messaging.model.SpeakerSwitchView;
+import org.openkilda.wfm.topology.discovery.model.IslFacts;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
 import org.openkilda.wfm.topology.discovery.service.ISwitchReply;
 
@@ -31,6 +32,8 @@ public class SwitchFsmContext {
     private SwitchInit precreateState;
 
     private Integer portNumber;
+
+    private IslFacts islFacts;
 
     public SwitchFsmContext(ISwitchReply output) {
         this.output = output;

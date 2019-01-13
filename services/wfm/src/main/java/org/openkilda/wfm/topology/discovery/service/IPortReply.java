@@ -16,4 +16,5 @@
 package org.openkilda.wfm.topology.discovery.service;
 
 public interface IPortReply {
+    void scheduleDiscoverySend();
 }

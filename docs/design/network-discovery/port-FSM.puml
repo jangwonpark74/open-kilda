@@ -16,7 +16,7 @@ Input signals:
 * offline
 
 Output signals:
-* isl-up
+* discovery (proxy)
 * isl-down
 * isl-disable
 * isl-move
@@ -52,7 +52,7 @@ state OPERATIONAL {
 
     state DISCOVERED {
         DISCOVERED : enter / record remote if unset
-        DISCOVERED : enter / emit isl-up
+        DISCOVERED : enter / emit discovery
         DISCOVERED : exit / emit isl-down
 
         [*] --> PRODUCE
@@ -72,7 +72,7 @@ state OPERATIONAL {
         FAIL_PUSH --> PRODUCE : next
         FAIL_PUSH : enter / emit push-fail
 
-        --
+        ||
 
         state checkMoved <<choice>>
 
@@ -88,7 +88,7 @@ state OPERATIONAL {
         MOVED : enter / record remote
 
         CONFIRM_DISCOVERY --> CONSUME : next
-        CONFIRM_DISCOVERY : enter / emit isl-up
+        CONFIRM_DISCOVERY : enter / emit discovery
     }
     DISCOVERED --> DOWN : port-down
 }

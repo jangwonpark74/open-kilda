@@ -1,0 +1,34 @@
+Input signals:
+* discovery
+* discovery-push
+
+Data model:
+* fail-timer (timeout)
+* no-push-timer (timeout)
+
+@startuml
+[*] --> UNKNOWN
+
+UNKNOWN -r-> RENEW : discovery
+UNKNOWN -r-> DOWN : fail-timer
+UNKNOWN --> SUSPEND : no-push-timer
+UNKNOWN : enter / raise no-push-timer
+UNKNOWN : enter / raise fail-timer
+
+UP --> RENEW : discovery
+UP --> SUSPEND : no-push-timer
+UP --> PUSHED : discovery-push
+UP --> DOWN : fail-timer
+
+RENEW --> UP : next
+RENEW : enter / postpone fail-timer
+
+SUSPEND --> UNKNOWN : discovery-push
+
+PUSHED --> UP : next
+PUSHED : enter / postpone no-push-timer
+
+DOWN --> RENEW : discovery
+DOWN : exit / raise no-push-timer
+
+@enduml

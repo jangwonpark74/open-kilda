@@ -16,4 +16,7 @@
 package org.openkilda.wfm.topology.discovery.controller;
 
 public enum PortFsmState {
+    INIT,
+
+    PREPOPULATE
 }

@@ -15,8 +15,8 @@
 
 package org.openkilda.wfm.topology.discovery.model;
 
-import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.messaging.model.SpeakerSwitchPortView;
+import org.openkilda.model.SwitchId;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,18 +26,26 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 public class PortFacts implements Serializable {
-    private final int portNumber;
+    private final Endpoint endpoint;
 
     private LinkStatus linkStatus;
     private boolean disabled;
-    private NetworkEndpoint remote;
+    private Endpoint remote;
 
-    public PortFacts(int portNumber) {
-        this(portNumber, null, false, null);
+    public PortFacts(Endpoint endpoint) {
+        this(endpoint, null, false, null);
     }
 
-    public PortFacts(SpeakerSwitchPortView portView) {
-        this(portView.getNumber(), mapAdminStatus(portView.getState()), false, null);
+    public PortFacts(Endpoint endpoint, Endpoint remote) {
+        this(endpoint, null, false, remote);
+    }
+
+    public PortFacts(SwitchId switchId,  SpeakerSwitchPortView portView) {
+        this(new Endpoint(switchId, portView.getNumber()), mapAdminStatus(portView.getState()), false, null);
+    }
+
+    public int getPortNumber() {
+        return endpoint.getPortNumber();
     }
 
     private static LinkStatus mapAdminStatus(SpeakerSwitchPortView.State adminStatus) {

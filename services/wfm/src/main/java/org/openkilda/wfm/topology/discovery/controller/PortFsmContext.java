@@ -15,5 +15,18 @@
 
 package org.openkilda.wfm.topology.discovery.controller;
 
+import org.openkilda.wfm.topology.discovery.model.Endpoint;
+import org.openkilda.wfm.topology.discovery.service.IPortReply;
+
+import lombok.Data;
+
+@Data
 public class PortFsmContext {
+    private final IPortReply output;
+
+    private Endpoint remote;
+
+    public PortFsmContext(IPortReply output) {
+        this.output = output;
+    }
 }

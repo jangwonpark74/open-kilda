@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.discovery.model;
 
 import org.openkilda.messaging.info.event.PathNode;
+import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.model.SwitchId;
 
 import lombok.AllArgsConstructor;
@@ -31,6 +32,10 @@ public class Endpoint implements Serializable {
     private SwitchId datapath;
 
     private int portNumber;
+
+    public Endpoint(NetworkEndpoint networkEndpoint) {
+        this(networkEndpoint.getDatapath(), networkEndpoint.getPortNumber());
+    }
 
     public Endpoint(PathNode pathNode) {
         this(pathNode.getSwitchId(), pathNode.getPortNo());

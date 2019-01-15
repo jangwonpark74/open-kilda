@@ -126,7 +126,7 @@ public class SwitchHandler extends AbstractBolt {
         } else if (event instanceof SwitchInfoData) {
             discoveryService.switchEvent((SwitchInfoData) event, outputAdapter);
         } else if (event instanceof PortInfoData) {
-            discoveryService.portEvent((PortInfoData) event, outputAdapter);
+            discoveryService.switchPortEvent((PortInfoData) event, outputAdapter);
         } else {
             unhandledInput(input);
         }

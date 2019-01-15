@@ -27,7 +27,7 @@ Output signals:
 @startuml
 [*] --> INIT
 
-INIT -r-> PREPOPULATE : remote-data
+INIT -r-> PREPOPULATE : history
 INIT --> BECOME_OFFLINE : offline
 INIT --> OPERATIONAL : online
 
@@ -37,9 +37,9 @@ PREPOPULATE -l-> INIT : next
 state OPERATIONAL {
     [*] --> UNKNOWN
 
-    UNKNOWN : enter / set online true
     UNKNOWN --> DOWN : port-down
     UNKNOWN --> UP : port-up
+    UNKNOWN : enter / set online true
 
     UP --> DOWN : port-down
     UP --> makeDiscovery : discovery-timer
@@ -53,36 +53,44 @@ state OPERATIONAL {
     state DISCOVERED {
         DISCOVERED : enter / record remote if unset
         DISCOVERED : enter / emit isl-up
+        DISCOVERED : exit / emit isl-down
+
+        [*] --> PRODUCE
+        PRODUCE --> PUSH : discovery-timer
+        PRODUCE : enter / raise discovery-timer
+
+        PUSH --> CONFIRM_PUSH : confirmed
+        PUSH --> FAIL_PUSH : push-fail-timer
+        PUSH --> FAIL_PUSH : push-fail
+        PUSH : enter / raise push-fail-timer
+        PUSH : enter / send discovery packet
+        PUSH : exit / cancel push-fail-timer
+
+        CONFIRM_PUSH --> PRODUCE : next
+        CONFIRM_PUSH : enter / emit push-discovery
+
+        FAIL_PUSH --> PRODUCE : next
+        FAIL_PUSH : enter / emit push-fail
+
+        --
 
         state checkMoved <<choice>>
 
-        [*] --> pending
-        pending --> pushed : discovery-timer
-        pending -d-> checkMoved : discovered
-        pending --> pending : discovery-pushed
+        [*] --> CONSUME
+        
+        CONSUME --> checkMoved : discovery 
 
-        pushed --> confirmed : discovery-pushed
-        pushed --> failed : discovery-timer
-        pushed -d-> checkMoved : discovery
+        checkMoved --> CONFIRM_DISCOVERY : if same remote
+        checkMoved --> MOVED : if remote changed
 
-        confirmed : enter / emit push-discovery
-        confirmed --> pending : next
+        MOVED --> CONFIRM_DISCOVERY : next
+        MOVED : enter / emit isl-move
+        MOVED : enter / record remote
 
-        failed : enter / emit isl-push-fail
-        failed --> pending
-
-        checkMoved -u-> pending : same-remote
-        checkMoved -u-> moved : moved
-
-        moved : enter / emit isl-move
-        moved : enter / emit isl-up
-        moved : enter / record remote
-        moved --> pending : next
+        CONFIRM_DISCOVERY --> CONSUME : next
+        CONFIRM_DISCOVERY : enter / emit isl-up
     }
-    DISCOVERED -u-> becomeUndiscovered : port-down
-
-    becomeUndiscovered : enter / emit isl-down
-    becomeUndiscovered --> DOWN : next
+    DISCOVERED --> DOWN : port-down
 }
 
 OPERATIONAL --> BECOME_OFFLINE : offline

@@ -16,8 +16,49 @@
 
 package org.openkilda.wfm.topology.discovery.controller;
 
+import org.openkilda.wfm.share.utils.FsmExecutor;
+import org.openkilda.wfm.topology.discovery.model.Endpoint;
+
+import org.squirrelframework.foundation.fsm.StateMachineBuilder;
+import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
 import org.squirrelframework.foundation.fsm.impl.AbstractStateMachine;
 
 public class PortFsm extends AbstractStateMachine<PortFsm, PortFsmState, PortFsmEvent, PortFsmContext> {
+    private final Endpoint endpoint;
+    private Endpoint remote;
 
+    private boolean online = true;
+    private boolean enabled = true;
+    private boolean managed = true;
+
+    private static final StateMachineBuilder<PortFsm, PortFsmState, PortFsmEvent, PortFsmContext> builder;
+
+    static {
+        builder = StateMachineBuilderFactory.create(
+                PortFsm.class, PortFsmState.class, PortFsmEvent.class, PortFsmContext.class,
+                // extra parameters
+                Endpoint.class);
+
+        builder.transition().from(PortFsmState.INIT).to(PortFsmState.PREPOPULATE).on(PortFsmEvent.HISTORY);
+        builder.transition().from(PortFsmState.PREPOPULATE).to(PortFsmState.INIT).on(PortFsmEvent.NEXT);
+
+        builder.onEntry(PortFsmState.PREPOPULATE)
+                .callMethod("prepopulateEnter");
+    }
+
+    public static FsmExecutor<PortFsm, PortFsmState, PortFsmEvent, PortFsmContext> makeExecutor() {
+        return new FsmExecutor<>(PortFsmEvent.NEXT);
+    }
+
+    public static PortFsm create(Endpoint endpoint) {
+        return builder.newStateMachine(PortFsmState.INIT, endpoint);
+    }
+
+    public PortFsm(Endpoint endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    private void prepopulateEnter(PortFsmState from, PortFsmState to, PortFsmState event, PortFsmContext context) {
+        remote = context.getRemote();
+    }
 }

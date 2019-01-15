@@ -15,6 +15,8 @@
 
 package org.openkilda.wfm.topology.discovery.service;
 
+import org.openkilda.wfm.topology.discovery.model.Endpoint;
+
 public interface IPortReply {
-    void scheduleDiscoverySend();
+    void scheduleDiscoverySend(Endpoint endpoint, long delay);
 }

@@ -20,7 +20,9 @@ import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.discovery.model.Endpoint;
 import org.openkilda.wfm.topology.discovery.model.PortCommand;
+import org.openkilda.wfm.topology.discovery.model.PortSendDiscoveryCommand;
 import org.openkilda.wfm.topology.discovery.model.PostponedPortCommand;
 import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
 import org.openkilda.wfm.topology.discovery.service.IPortReply;
@@ -37,6 +39,7 @@ public class PortHandler extends AbstractBolt {
 
     private final transient PersistenceManager persistenceManager;
 
+    private long lastTimeTick = 0;
     private transient DiscoveryService discoveryService;
     private transient List<PostponedPortCommand> postponedCommands;
 
@@ -57,23 +60,28 @@ public class PortHandler extends AbstractBolt {
     }
 
     private void handleMonotonicTick(Tuple input) throws PipelineException {
-        long tickTime = pullValue(input, MonotonicTick.FIELD_ID_TIME_MILLIS, Long.class);
+        lastTimeTick = pullValue(input, MonotonicTick.FIELD_ID_TIME_MILLIS, Long.class);
         OutputAdapter outputAdapter = new OutputAdapter(this, input);
         for (Iterator<PostponedPortCommand> iterator = postponedCommands.iterator(); iterator.hasNext();) {
             PostponedPortCommand postponed = iterator.next();
-            if (postponed.isApplicable(tickTime)) {
+            if (postponed.isApplicable(lastTimeTick)) {
                 PortCommand command = postponed.getCommand();
                 command.apply(discoveryService, outputAdapter);
                 iterator.remove();
             }
         }
-        discoveryService.timerTick(tickTime);
+        discoveryService.timerTick(lastTimeTick);
     }
 
     private void handleSwitchCommand(Tuple input) throws PipelineException {
         PortCommand command = pullValue(input, SwitchHandler.FIELD_ID_PAYLOAD, PortCommand.class);
         OutputAdapter outputAdapter = new OutputAdapter(this, input);
         command.apply(discoveryService, outputAdapter);
+    }
+
+    private void schedulePostponed(PortCommand command, long delay) {
+        PostponedPortCommand postponed = new PostponedPortCommand(lastTimeTick + delay, command);
+        postponedCommands.add(postponed);
     }
 
     @Override
@@ -88,8 +96,16 @@ public class PortHandler extends AbstractBolt {
     }
 
     static class OutputAdapter extends AbstractOutputAdapter implements IPortReply {
+        private final PortHandler bolt;
+
         OutputAdapter(PortHandler owner, Tuple tuple) {
             super(owner, tuple);
+            bolt = owner;
+        }
+
+        @Override
+        public void scheduleDiscoverySend(Endpoint endpoint, long delay) {
+            bolt.schedulePostponed(new PortSendDiscoveryCommand(endpoint), delay);
         }
 
         // TODO

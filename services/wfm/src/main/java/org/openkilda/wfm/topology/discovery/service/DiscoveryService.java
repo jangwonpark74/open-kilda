@@ -29,6 +29,9 @@ import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.discovery.controller.PortFsm;
+import org.openkilda.wfm.topology.discovery.controller.PortFsmContext;
+import org.openkilda.wfm.topology.discovery.controller.PortFsmEvent;
+import org.openkilda.wfm.topology.discovery.controller.PortFsmState;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsm;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmContext;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmEvent;
@@ -54,8 +57,11 @@ public class DiscoveryService {
 
     private final Map<SwitchId, SwitchFsm> switchController = new HashMap<>();
     private final Map<Endpoint, PortFsm> portController = new HashMap<>();
+
     private final FsmExecutor<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> switchControllerExecutor
             = SwitchFsm.makeExecutor();
+    private final FsmExecutor<PortFsm, PortFsmState, PortFsmEvent, PortFsmContext> portControllerExecutor
+            = PortFsm.makeExecutor();
 
     public DiscoveryService(PersistenceManager persistenceManager) {
         this.persistenceManager = persistenceManager;
@@ -140,7 +146,7 @@ public class DiscoveryService {
         switchControllerExecutor.fire(switchFsm, SwitchFsmEvent.ISL_DISCOVERY, fsmContext);
     }
 
-    public void portEvent(PortInfoData payload, ISwitchReply outputAdapter) {
+    public void switchPortEvent(PortInfoData payload, ISwitchReply outputAdapter) {
         SwitchFsm switchFsm = locateSwitchFsm(payload.getSwitchId());
         SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
         fsmContext.setPortNumber(payload.getPortNo());
@@ -176,10 +182,18 @@ public class DiscoveryService {
 
     // -- PortHandler --
 
-    // -- common --
+    public void portSetup(PortFacts portFacts, IPortReply outputAdapter) {
+        Endpoint endpoint = portFacts.getEndpoint();
+        PortFsm portFsm = PortFsm.create(endpoint);
 
-    public void timerTick(long tickTime) {
-        // TODO
+        Endpoint remote = portFacts.getRemote();
+        if (remote != null) {
+            PortFsmContext fsmContext = new PortFsmContext(outputAdapter);
+            fsmContext.setRemote(remote);
+            portControllerExecutor.fire(portFsm, PortFsmEvent.HISTORY, fsmContext);
+        }
+
+        portController.put(endpoint, portFsm);
     }
 
     // -- private --
@@ -204,9 +218,8 @@ public class DiscoveryService {
             }
 
             try {
-                NetworkEndpoint remote = new NetworkEndpoint(islEntry.getDestSwitch().getSwitchId(),
-                                                             islEntry.getDestPort());
-                swInit.addPort(new PortFacts(islEntry.getSrcPort()));
+                Endpoint remote = new Endpoint(islEntry.getDestSwitch().getSwitchId(), islEntry.getDestPort());
+                swInit.addPort(new PortFacts(new Endpoint(swInit.getSwitchId(), islEntry.getSrcPort()), remote));
             } catch (IllegalArgumentException e) {
                 log.error("Corrupter ISL relation endpoint(dest) - {}-{}",
                           islEntry.getDestSwitch().getSwitchId(), islEntry.getDestPort());
@@ -238,7 +251,7 @@ public class DiscoveryService {
     private SwitchFsm locateSwitchFsm(SwitchId datapath) {
         SwitchFsm switchFsm = switchController.get(datapath);
         if (switchFsm == null) {
-            throw new IllegalStateException(String.format("Switch FSM not found (%s).", datapath);
+            throw new IllegalStateException(String.format("Switch FSM not found (%s).", datapath));
         }
         return switchFsm;
     }

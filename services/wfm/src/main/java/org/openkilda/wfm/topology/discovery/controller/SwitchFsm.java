@@ -19,6 +19,7 @@ import org.openkilda.messaging.model.SpeakerSwitchPortView;
 import org.openkilda.messaging.model.SpeakerSwitchView;
 import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.share.utils.FsmExecutor;
+import org.openkilda.wfm.topology.discovery.model.Endpoint;
 import org.openkilda.wfm.topology.discovery.model.PortFacts;
 import org.openkilda.wfm.topology.discovery.model.PortFacts.LinkStatus;
 import org.openkilda.wfm.topology.discovery.model.SwitchInit;
@@ -42,7 +43,7 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
 
     private final Map<Integer, PortFacts> portByNumber = new HashMap<>();
 
-    public static final StateMachineBuilder<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> builder;
+    private static final StateMachineBuilder<SwitchFsm, SwitchFsmState, SwitchFsmEvent, SwitchFsmContext> builder;
 
     static {
         builder = StateMachineBuilderFactory.create(
@@ -154,11 +155,11 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
         for (SpeakerSwitchPortView port : initState.getPorts()) {
             removedPorts.remove(port.getNumber());
 
-            PortFacts actualPort = new PortFacts(port);
+            PortFacts actualPort = new PortFacts(switchId, port);
             PortFacts storedPort = portByNumber.get(port.getNumber());
             if (storedPort == null) {
                 // port added
-                portAdd(context, new PortFacts(port));
+                portAdd(context, actualPort);
                 continue;
             }
 
@@ -204,12 +205,12 @@ public class SwitchFsm extends AbstractStateMachine<SwitchFsm, SwitchFsmState, S
     }
 
     private void portAddEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event, SwitchFsmContext context) {
-        PortFacts port = new PortFacts(context.getPortNumber());
+        PortFacts port = new PortFacts(new Endpoint(switchId, context.getPortNumber()));
         portAdd(context, port);
     }
 
     private void portDelEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event, SwitchFsmContext context) {
-        PortFacts port = new PortFacts(context.getPortNumber());
+        PortFacts port = new PortFacts(new Endpoint(switchId, context.getPortNumber()));
         portDel(context, port);
     }
 

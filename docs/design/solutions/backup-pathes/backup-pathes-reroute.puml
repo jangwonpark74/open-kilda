@@ -1,0 +1,11 @@
+@startuml
+title Reroute flow with backup path
+
+participant Client
+participant FlowService
+participant PathComputerFactory
+participant PathComputer
+database Neo4J
+participant FlowCommandSender
+
+@enduml

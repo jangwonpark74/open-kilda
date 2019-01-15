@@ -17,19 +17,24 @@ package org.openkilda.wfm.topology.nbworker.services;
 
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.SwitchNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Optional;
+
 @Slf4j
 public class SwitchOperationsService {
 
     private SwitchRepository switchRepository;
+    private TransactionManager transactionManager;
 
-    public SwitchOperationsService(RepositoryFactory repositoryFactory) {
+    public SwitchOperationsService(RepositoryFactory repositoryFactory, TransactionManager transactionManager) {
         this.switchRepository = repositoryFactory.createSwitchRepository();
+        this.transactionManager = transactionManager;
     }
 
     /**
@@ -40,4 +45,35 @@ public class SwitchOperationsService {
     public Switch getSwitch(SwitchId switchId) throws SwitchNotFoundException {
         return switchRepository.findById(switchId).orElseThrow(() -> new SwitchNotFoundException(switchId));
     }
+
+    /**
+     * Update the "Under maintenance" flag for the switch.
+     *
+     * @param switchId switch id.
+     * @param underMaintenance "Under maintenance" flag.
+     * @return updated switch.
+     * @throws SwitchNotFoundException if there is no switch with this switch id.
+     */
+    public Switch updateSwitchUnderMaintenanceFlag(SwitchId switchId, boolean underMaintenance)
+            throws SwitchNotFoundException {
+        return transactionManager.doInTransaction(() -> {
+            Optional<Switch> foundSwitch = switchRepository.findById(switchId);
+            if (!(foundSwitch.isPresent())) {
+                return Optional.<Switch>empty();
+            }
+
+            Switch sw = foundSwitch.get();
+
+            if (sw.isUnderMaintenance() == underMaintenance) {
+                return Optional.of(sw);
+            }
+
+            sw.setUnderMaintenance(underMaintenance);
+
+            switchRepository.createOrUpdate(sw);
+
+            return Optional.of(sw);
+        }).orElseThrow(() -> new SwitchNotFoundException(switchId));
+    }
+
 }

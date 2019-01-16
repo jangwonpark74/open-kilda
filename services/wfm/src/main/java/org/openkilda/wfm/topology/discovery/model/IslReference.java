@@ -15,19 +15,20 @@
 
 package org.openkilda.wfm.topology.discovery.model;
 
-import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
-import org.openkilda.wfm.topology.discovery.service.IPortReply;
+import lombok.Value;
 
-public class PortOnlineModeCommand extends PortCommand {
-    private final boolean online;
+@Value
+public class IslReference {
+    private final Endpoint source;
+    private final Endpoint dest;
 
-    public PortOnlineModeCommand(Endpoint endpoint, boolean online) {
-        super(endpoint);
-        this.online = online;
-    }
-
-    @Override
-    public void apply(DiscoveryService service, IPortReply output) {
-        // TODO
+    public IslReference(Endpoint source, Endpoint dest) {
+        if (source.getDatapath().compareTo(dest.getDatapath()) < 0) {
+            this.source = source;
+            this.dest = dest;
+        } else {
+            this.source = dest;
+            this.dest = source;
+        }
     }
 }

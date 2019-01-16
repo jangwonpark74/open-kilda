@@ -15,11 +15,19 @@
 
 package org.openkilda.wfm.topology.discovery.model;
 
+import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
+import org.openkilda.wfm.topology.discovery.service.IPortReply;
+
 public class PortManagementModeCommand extends PortCommand {
     private final boolean management;
 
-    public PortManagementModeCommand(int portNumber, boolean management) {
-        super(portNumber);
+    public PortManagementModeCommand(Endpoint endpoint, boolean management) {
+        super(endpoint);
         this.management = management;
+    }
+
+    @Override
+    public void apply(DiscoveryService service, IPortReply output) {
+        // TODO
     }
 }

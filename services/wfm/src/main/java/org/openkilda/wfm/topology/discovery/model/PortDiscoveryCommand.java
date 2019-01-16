@@ -22,7 +22,7 @@ public class PortDiscoveryCommand extends PortCommand {
     private final IslFacts islFacts;
 
     public PortDiscoveryCommand(IslFacts islFacts) {
-        super(islFacts.getDest().getPortNumber());
+        super(islFacts.getDest());
 
         this.islFacts = islFacts;
     }

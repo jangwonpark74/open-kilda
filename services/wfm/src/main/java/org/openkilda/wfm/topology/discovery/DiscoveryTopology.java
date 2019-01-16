@@ -21,6 +21,7 @@ import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.discovery.bolt.ComponentId;
 import org.openkilda.wfm.topology.discovery.bolt.InputDecoder;
+import org.openkilda.wfm.topology.discovery.bolt.IslHandler;
 import org.openkilda.wfm.topology.discovery.bolt.MonotonicTick;
 import org.openkilda.wfm.topology.discovery.bolt.PortHandler;
 import org.openkilda.wfm.topology.discovery.bolt.SpeakerEncoder;
@@ -45,8 +46,6 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
     @Override
     public StormTopology createTopology() {
         int scaleFactor = topologyConfig.getScaleFactor();
-        PersistenceManager persistenceManager =
-                PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
 
         TopologyBuilder topology = new TopologyBuilder();
 
@@ -54,10 +53,13 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
         input(topology, scaleFactor);
 
         speakerMonitor(topology);
+
+        PersistenceManager persistenceManager =
+                PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
         switchPreloader(topology, persistenceManager);
         switchHandler(topology, persistenceManager, scaleFactor);
         portHandler(topology, persistenceManager, scaleFactor);
-        islHandler(topology, scaleFactor);
+        islHandler(topology, persistenceManager, scaleFactor);
 
         output(topology, scaleFactor);
 
@@ -108,6 +110,13 @@ public class DiscoveryTopology extends AbstractTopology<DiscoveryTopologyConfig>
         topology.setBolt(PortHandler.BOLT_ID, bolt, scaleFactor)
                 .fieldsGrouping(SwitchHandler.BOLT_ID, portGrouping)
                 .allGrouping(MonotonicTick.BOLT_ID);
+    }
+
+    private void islHandler(TopologyBuilder topology, PersistenceManager persistenceManager, int scaleFactor) {
+        IslHandler bolt = new IslHandler(persistenceManager);
+        Fields islGrouping = new Fields(PortHandler.FIELD_ID_ISL_SOURCE, PortHandler.FIELD_ID_ISL_DEST);
+        topology.setBolt(IslHandler.BOLT_ID, bolt, scaleFactor)
+                .fieldsGrouping(PortHandler.BOLT_ID, PortHandler.STREAM_ISL_ID, islGrouping);
     }
 
     private void output(TopologyBuilder topology, int scaleFactor) {

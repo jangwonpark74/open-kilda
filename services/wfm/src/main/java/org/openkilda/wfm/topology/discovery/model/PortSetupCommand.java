@@ -22,7 +22,7 @@ public class PortSetupCommand extends PortCommand {
     private final PortFacts facts;
 
     public PortSetupCommand(PortFacts facts) {
-        super(facts.getPortNumber());
+        super(facts.getEndpoint());
         this.facts = facts;
     }
 

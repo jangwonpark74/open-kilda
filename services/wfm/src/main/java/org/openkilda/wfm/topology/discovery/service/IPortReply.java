@@ -16,7 +16,10 @@
 package org.openkilda.wfm.topology.discovery.service;
 
 import org.openkilda.wfm.topology.discovery.model.Endpoint;
+import org.openkilda.wfm.topology.discovery.model.IslFacts;
 
 public interface IPortReply {
+    void setupIslHandler(IslFacts islFacts);
+
     void scheduleDiscoverySend(Endpoint endpoint, long delay);
 }

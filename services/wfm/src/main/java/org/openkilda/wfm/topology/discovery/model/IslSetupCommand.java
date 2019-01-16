@@ -18,12 +18,9 @@ package org.openkilda.wfm.topology.discovery.model;
 import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
 import org.openkilda.wfm.topology.discovery.service.IPortReply;
 
-public class PortOnlineModeCommand extends PortCommand {
-    private final boolean online;
-
-    public PortOnlineModeCommand(Endpoint endpoint, boolean online) {
-        super(endpoint);
-        this.online = online;
+public class IslSetupCommand extends IslCommand {
+    public IslSetupCommand(IslFacts islFacts) {
+        super(islFacts.getReference());
     }
 
     @Override

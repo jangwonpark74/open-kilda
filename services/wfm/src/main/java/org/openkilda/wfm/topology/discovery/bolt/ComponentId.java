@@ -25,6 +25,7 @@ public enum ComponentId {
     SWITCH_PRELOADER("switch-preloader"),
     SWITCH_HANDLER("switch-handler"),
     PORT_HANDLER("port-handler"),
+    ISL_HANDLER("isl-handler"),
 
     SPEAKER_ENCODER("speaker.encoder"),
     SPEAKER_OUTPUT("speaker.output");

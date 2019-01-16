@@ -23,17 +23,23 @@ import java.io.Serializable;
 
 @Value
 public class IslFacts implements Serializable {
-    private Endpoint source;
-    private Endpoint dest;
+    private IslReference reference;
 
     private long speed;
     private long availableBandwidth;
 
     public IslFacts(IslInfoData speakerIslData) {
-        source = new Endpoint(speakerIslData.getSource());
-        dest = new Endpoint(speakerIslData.getDestination());
+        this(new Endpoint(speakerIslData.getSource()), new Endpoint(speakerIslData.getDestination()),
+             speakerIslData.getSpeed(), speakerIslData.getAvailableBandwidth());
+    }
 
-        speed = speakerIslData.getSpeed();
-        availableBandwidth = speakerIslData.getAvailableBandwidth();
+    public IslFacts(Endpoint source, Endpoint dest) {
+        this(source, dest, -1, -1);
+    }
+
+    private IslFacts(Endpoint source, Endpoint dest, long speed, long availableBandwidth) {
+        this.reference = new IslReference(source, dest);
+        this.speed = speed;
+        this.availableBandwidth = availableBandwidth;
     }
 }

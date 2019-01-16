@@ -15,11 +15,19 @@
 
 package org.openkilda.wfm.topology.discovery.model;
 
+import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
+import org.openkilda.wfm.topology.discovery.service.IPortReply;
+
 public class PortLinkModeCommand extends PortCommand {
     private final PortFacts facts;
 
     public PortLinkModeCommand(PortFacts facts) {
-        super(facts.getPortNumber());
+        super(facts.getEndpoint());
         this.facts = facts;
+    }
+
+    @Override
+    public void apply(DiscoveryService service, IPortReply output) {
+        // TODO
     }
 }

@@ -31,8 +31,9 @@ INIT -r-> PREPOPULATE : history
 INIT --> BECOME_OFFLINE : offline
 INIT --> OPERATIONAL : online
 
-PREPOPULATE : enter / set remote
 PREPOPULATE -l-> INIT : next
+PREPOPULATE : enter / set remote
+PREPOPULATE : enter / emit isl-setup
 
 state OPERATIONAL {
     [*] --> UNKNOWN
@@ -55,25 +56,6 @@ state OPERATIONAL {
         DISCOVERED : enter / emit discovery
         DISCOVERED : exit / emit isl-down
 
-        [*] --> PRODUCE
-        PRODUCE --> PUSH : discovery-timer
-        PRODUCE : enter / raise discovery-timer
-
-        PUSH --> CONFIRM_PUSH : confirmed
-        PUSH --> FAIL_PUSH : push-fail-timer
-        PUSH --> FAIL_PUSH : push-fail
-        PUSH : enter / raise push-fail-timer
-        PUSH : enter / send discovery packet
-        PUSH : exit / cancel push-fail-timer
-
-        CONFIRM_PUSH --> PRODUCE : next
-        CONFIRM_PUSH : enter / emit push-discovery
-
-        FAIL_PUSH --> PRODUCE : next
-        FAIL_PUSH : enter / emit push-fail
-
-        ||
-
         state checkMoved <<choice>>
 
         [*] --> MAIN
@@ -90,6 +72,7 @@ state OPERATIONAL {
         MOVED --> CONFIRM_DISCOVERY : next
         MOVED : enter / emit isl-move
         MOVED : enter / record remote
+        MOVED : enter / emit isl-setup
 
         CONFIRM_DISCOVERY --> MAIN : next
         CONFIRM_DISCOVERY : enter / emit discovery
@@ -117,15 +100,24 @@ state UNOPERATIONAL {
 
     state OPERATIONAL_DECISION <<choice>>
 
-    PENDING --> OPERATIONAL_DECISION : online (set online = true)
-    PENDING --> OPERATIONAL_DECISION : offline (set online = false)
-    PENDING --> OPERATIONAL_DECISION : disable (set enabled = false)
-    PENDING --> OPERATIONAL_DECISION : enable (set enabled = true)
-    PENDING --> OPERATIONAL_DECISION : port-unmanaged (set managed = false)
-    PENDING --> OPERATIONAL_DECISION : port-managed (set managed = true)
+    PENDING --> ONLINE_SWITCH : online
+    PENDING --> ONLINE_SWITCH : offline
+    PENDING --> ENABLE_SWITCH : disable
+    PENDING --> ENABLE_SWITCH : enable
+    PENDING --> MANAGED_SWITCH : port-unmanaged
+    PENDING --> MANAGED_SWITCH : port-managed
 
-    OPERATIONAL_DECISION --> PENDING : next
-    OPERATIONAL_DECISION -u-> OPERATIONAL : next
+    ONLINE_SWITCH --> OPERATIONAL_DECISION : next
+    ONLINE_SWITCH : enter / set online = (true|false)
+
+    ENABLE_SWITCH --> OPERATIONAL_DECISION : next
+    ENABLE_SWITCH : enter / set enabled = (true|false)
+
+    MANAGED_SWITCH --> OPERATIONAL_DECISION : next
+    MANAGED_SWITCH : enter / set managed = (true|false)
+
+    OPERATIONAL_DECISION --> PENDING : else
+    OPERATIONAL_DECISION -u-> OPERATIONAL : all flags are true
 }
 
 @enduml

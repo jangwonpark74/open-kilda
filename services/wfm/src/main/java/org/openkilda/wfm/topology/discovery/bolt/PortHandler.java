@@ -21,6 +21,10 @@ import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.topology.discovery.model.Endpoint;
+import org.openkilda.wfm.topology.discovery.model.IslCommand;
+import org.openkilda.wfm.topology.discovery.model.IslFacts;
+import org.openkilda.wfm.topology.discovery.model.IslReference;
+import org.openkilda.wfm.topology.discovery.model.IslSetupCommand;
 import org.openkilda.wfm.topology.discovery.model.PortCommand;
 import org.openkilda.wfm.topology.discovery.model.PortSendDiscoveryCommand;
 import org.openkilda.wfm.topology.discovery.model.PostponedPortCommand;
@@ -28,7 +32,9 @@ import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
 import org.openkilda.wfm.topology.discovery.service.IPortReply;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -36,6 +42,14 @@ import java.util.List;
 
 public class PortHandler extends AbstractBolt {
     public static final String BOLT_ID = ComponentId.PORT_HANDLER.toString();
+
+    public static final String FIELD_ID_ISL_SOURCE = "isl-source";
+    public static final String FIELD_ID_ISL_DEST = "isl-dest";
+    public static final String FIELD_ID_ISL_COMMAND = "isl-command";
+
+    public static final String STREAM_ISL_ID = "isl";
+    public static final Fields STREAM_ISL_FIELDS = new Fields(FIELD_ID_ISL_SOURCE, FIELD_ID_ISL_DEST,
+                                                              FIELD_ID_ISL_COMMAND, FIELD_ID_CONTEXT);
 
     private final transient PersistenceManager persistenceManager;
 
@@ -60,6 +74,7 @@ public class PortHandler extends AbstractBolt {
     }
 
     private void handleMonotonicTick(Tuple input) throws PipelineException {
+        // TODO use timeout management from H&S POC
         lastTimeTick = pullValue(input, MonotonicTick.FIELD_ID_TIME_MILLIS, Long.class);
         OutputAdapter outputAdapter = new OutputAdapter(this, input);
         for (Iterator<PostponedPortCommand> iterator = postponedCommands.iterator(); iterator.hasNext();) {
@@ -70,7 +85,6 @@ public class PortHandler extends AbstractBolt {
                 iterator.remove();
             }
         }
-        discoveryService.timerTick(lastTimeTick);
     }
 
     private void handleSwitchCommand(Tuple input) throws PipelineException {
@@ -85,7 +99,8 @@ public class PortHandler extends AbstractBolt {
     }
 
     @Override
-    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+    public void declareOutputFields(OutputFieldsDeclarer streamManager) {
+        streamManager.declareStream(STREAM_ISL_ID, STREAM_ISL_FIELDS);
         // TODO
     }
 
@@ -104,10 +119,20 @@ public class PortHandler extends AbstractBolt {
         }
 
         @Override
+        public void setupIslHandler(IslFacts islFacts) {
+            emit(STREAM_ISL_ID, makeIslTuple(new IslSetupCommand(islFacts)));
+        }
+
+        @Override
         public void scheduleDiscoverySend(Endpoint endpoint, long delay) {
             bolt.schedulePostponed(new PortSendDiscoveryCommand(endpoint), delay);
         }
 
         // TODO
+
+        private Values makeIslTuple(IslCommand command) {
+            IslReference reference = command.getReference();
+            return new Values(reference.getSource(), reference.getDest(), command, getContext());
+        }
     }
 }

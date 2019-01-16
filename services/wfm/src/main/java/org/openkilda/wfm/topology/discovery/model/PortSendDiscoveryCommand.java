@@ -19,11 +19,8 @@ import org.openkilda.wfm.topology.discovery.service.DiscoveryService;
 import org.openkilda.wfm.topology.discovery.service.IPortReply;
 
 public class PortSendDiscoveryCommand extends PortCommand {
-    private final Endpoint endpoint;
-
     public PortSendDiscoveryCommand(Endpoint endpoint) {
-        super(endpoint.getPortNumber());
-        this.endpoint = endpoint;
+        super(endpoint);
     }
 
     @Override

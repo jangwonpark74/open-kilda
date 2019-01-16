@@ -27,6 +27,7 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.AbstractOutputAdapter;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.discovery.model.Endpoint;
 import org.openkilda.wfm.topology.discovery.model.IslFacts;
 import org.openkilda.wfm.topology.discovery.model.PortCommand;
 import org.openkilda.wfm.topology.discovery.model.PortDiscoveryCommand;
@@ -57,7 +58,6 @@ public class SwitchHandler extends AbstractBolt {
     public static final String STREAM_PORT_ID = "ports";
     public static final Fields STREAM_PORT_FIELDS = new Fields(FIELD_ID_SWITCH_ID, FIELD_ID_PORT_NUMBER,
                                                                FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
-
 
     private final PersistenceManager persistenceManager;
 
@@ -154,17 +154,20 @@ public class SwitchHandler extends AbstractBolt {
 
         @Override
         public void removePortHandler(SwitchId switchId, int portNumber) {
-            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortRemoveCommand(portNumber)));
+            Endpoint endpoint = new Endpoint(switchId, portNumber);
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortRemoveCommand(endpoint)));
         }
 
         @Override
         public void sethOnlineMode(SwitchId switchId, int portNumber, boolean mode) {
-            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortOnlineModeCommand(portNumber, mode)));
+            Endpoint endpoint = new Endpoint(switchId, portNumber);
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortOnlineModeCommand(endpoint, mode)));
         }
 
         @Override
         public void setManagementMode(SwitchId switchId, int portNumber, boolean mode) {
-            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortManagementModeCommand(portNumber, mode)));
+            Endpoint endpoint = new Endpoint(switchId, portNumber);
+            emit(STREAM_PORT_ID, makePortTuple(switchId, new PortManagementModeCommand(endpoint, mode)));
         }
 
         @Override

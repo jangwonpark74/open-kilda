@@ -1,6 +1,10 @@
 Internal state:
 * endpoint-A
 * endpoint-B
+* A-endpoint-online
+* B-endpoint-online
+* A-thread-FSM
+* B-thread-FSM
 
 Input signals:
 * A-isl-up
@@ -25,107 +29,56 @@ Input signals:
 * offline-fail-timer
 
 @startuml
-[*] --> PENDING
+[*] --> SETUP
 
-state PENDING_ROUTER <<choice>>
+SETUP --> GENERIC
+SETUP : enter / setup A-thread-FSM
+SETUP : enter / setup B-thread-FSM
 
-state PENDING {
-    [*] --> P_UNKNOWN_A
+state GENERIC {
 
-    P_UNKNOWN_A --> P_ADVANCE_A : A-isl-up
-    P_UNKNOWN_A --> P_WAIT_A : B-push-discovery
-    P_UNKNOWN_A --> DOWN_A : offline-fail-timer
+    [*] --> IDLE
 
-    P_ADVANCE_A --> READY_A : B-push-discovery
-    P_ADVANCE_A --> P_UNKNOWN_A : no-discovery-timer
+    IDLE : enter / setup discovery-timer
+    IDLE --> PUSH : discovery-timer
 
-    P_WAIT_A --> READY_A : A-isl-up
-    P_WAIT_A --> DOWN_A : fail-timer
-    P_WAIT_A --> P_WAIT_A : B-push-discovery
-
-    DOWN_A --> [*] : both DOWN
-
-    READY_A --> P_WAIT_A : B-push-discovery
-    READY_A --> P_ADVANCE_A : A-isl-up
-    READY_A --> P_UNKNOWN_A : no-discovery-timer
-    READY_A --> [*] : both UP
+    PUSH --> IDLE : next
+    PUSH : enter / emit discovery-push (A)
+    PUSH : enter / emit discovery-push (B)
 
     ||
 
-    [*] --> P_UNKNOWN_B
+    [*] --> PROXY
 
-    P_UNKNOWN_B --> P_ADVANCE_B : B-isl-up
-    P_UNKNOWN_B --> P_WAIT_B : A-push-discovery
-    P_UNKNOWN_B --> DOWN_B : offline-fail-timer
+    PROXY --> ENDPOINT_EVENT : discovery
+    PROXY --> ENDPOINT_EVENT : discovery-push
 
-    P_ADVANCE_B --> READY_B : A-push-discovery
-    P_ADVANCE_B --> P_UNKNOWN_B : no-discovery-timer
+    ENDPOINT_EVENT --> STATE_PERSIST : next
+    ENDPOINT_EVENT : enter / map event to thread
+    ENDPOINT_EVENT : enter / feed event into (A|B)-thread-FSM
 
-    P_WAIT_B --> READY_B : B-isl-up
-    P_WAIT_B --> DOWN_B : fail-timer
-    P_WAIT_B --> P_WAIT_B : A-push-discovery
-
-    DOWN_B --> [*] : both DOWN
-
-    READY_B --> P_WAIT_B : A-push-discovery
-    READY_B --> P_ADVANCE_B : B-isl-up
-    READY_B --> P_UNKNOWN_B : no-discovery-timer
-    READY_B --> [*] : both UP
+    STATE_PERSIST --> PROXY : next
+    STATE_PERSIST : enter / merge A and B threads state
+    STATE_PERSIST : enter / persist state
 }
 
-state UP {
-    [*] --> MONITOR_A
+GENERIC --> MOVED : moved
+GENERIC --> BECOME_OFFLINE : offline
 
-    MONITOR_A -> WAIT_A : B-push-discovery
-    MONITOR_A --> ADVANCE_A : A-isl-up
-    MONITOR_A --> UNKNOWN_A : no-discovery-timer
-    
-    ADVANCE_A --> MONITOR_A : B-push-discovery
-    ADVANCE_A --> UNKNOWN_A : no-discovery-timer
+MOVED --> GENERIC : discovery
+MOVED : ENTER / persist state
 
-    WAIT_A --> MONITOR_A : A-isl-up
-    WAIT_A --> WAIT_A : B-push-discovery
-    WAIT_A --> [*] : fail-timer
+BECOME_OFFLINE --> OFFLINE : next
+BECOME_OFFLINE : enter / set (A|B)-endpoint-online = false
 
-    UNKNOWN_A --> [*] : offline-fail-timer
+OFFLINE --> OFFLINE_SWITCH : online
+OFFLINE --> OFFLINE_SWITCH : offline
 
-    ||
+OFFLINE_SWITCH --> offlineGate : next
+OFFLINE_SWITCH : enter / set (A|B)-endpoint-online = (true|false)
 
-    [*] --> MONITOR_B
+state offlineGate <<choice>>
+offlineGate --> OFFLINE : any (A|B)-endpoint-online is false
+offlineGate --> GENERIC : else
 
-    MONITOR_B -> WAIT_B : B-push-discovery
-    MONITOR_B --> ADVANCE_B : A-isl-up
-    MONITOR_B --> UNKNOWN_B : no-discovery-timer
-    
-    ADVANCE_B --> MONITOR_B : B-push-discovery
-    ADVANCE_B --> UNKNOWN_B : no-discovery-timer
-
-    WAIT_B --> MONITOR_B : A-isl-up
-    WAIT_B --> WAIT_B : B-push-discovery
-    WAIT_B --> [*] : fail-timer
-
-    UNKNOWN_B --> [*] : offline-fail-timer
-}
-
-UP --> DOWN : any
-UP --> OFFLINE_A : A-sw-offline
-UP --> OFFLINE_B : B-sw-offline
-
-PENDING --> PENDING_ROUTER
-PENDING --> OFFLINE_A : A-sw-offline
-PENDING --> OFFLINE_B : B-sw-offline
-
-PENDING_ROUTER --> DOWN : down
-PENDING_ROUTER --> UP : up
-
-DOWN --> PENDING : any-isl-up
-DOWN --> OFFLINE_A : A-sw-offline
-DOWN --> OFFLINE_B : B-sw-offline
-
-OFFLINE_A -d-> OFFLINE : B-sw-offline
-OFFLINE_A --> PENDING : A-sw-online
-OFFLINE_B -d-> OFFLINE : A-sw-offline
-OFFLINE_B --> PENDING : B-sw-online
-OFFLINE --> OFFLINE_A : B-sw-online
-OFFLINE --> OFFLINE_B : A-sw-online
 @enduml

@@ -76,18 +76,22 @@ state OPERATIONAL {
 
         state checkMoved <<choice>>
 
-        [*] --> CONSUME
+        [*] --> MAIN
         
-        CONSUME --> checkMoved : discovery 
+        MAIN --> checkMoved : discovery
+        MAIN --> PROXY : discovery-pushed
 
         checkMoved --> CONFIRM_DISCOVERY : if same remote
         checkMoved --> MOVED : if remote changed
+
+        PROXY --> MAIN : next
+        PROXY : enter / emit discovery-pushed
 
         MOVED --> CONFIRM_DISCOVERY : next
         MOVED : enter / emit isl-move
         MOVED : enter / record remote
 
-        CONFIRM_DISCOVERY --> CONSUME : next
+        CONFIRM_DISCOVERY --> MAIN : next
         CONFIRM_DISCOVERY : enter / emit discovery
     }
     DISCOVERED --> DOWN : port-down

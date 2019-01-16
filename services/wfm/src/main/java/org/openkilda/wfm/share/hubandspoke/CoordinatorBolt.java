@@ -16,9 +16,8 @@
 package org.openkilda.wfm.share.hubandspoke;
 
 import static java.lang.String.format;
-import static org.openkilda.wfm.share.hubandspoke.Components.SPOUT_COORDINATOR;
-import static org.openkilda.wfm.share.hubandspoke.CoordinatorClient.COMMAND_FIELD;
-import static org.openkilda.wfm.share.hubandspoke.CoordinatorClient.TIMEOUT_FIELD;
+import static org.openkilda.wfm.share.hubandspoke.CoordinatedBolt.COMMAND_FIELD;
+import static org.openkilda.wfm.share.hubandspoke.CoordinatedBolt.TIMEOUT_FIELD;
 
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.topology.utils.MessageTranslator;
@@ -43,13 +42,15 @@ import java.util.TreeMap;
  */
 @Slf4j
 public final class CoordinatorBolt extends AbstractBolt {
+    public static final String ID = "coordinator.bolt";
+    public static final String INCOME_STREAM = "coordinator.command";
 
     private Map<String, Callback> callbacks = new HashMap<>();
     private SortedMap<Long, String> timeouts = new TreeMap<>();
 
     @Override
     protected void handleInput(Tuple input) {
-        if (SPOUT_COORDINATOR.equals(input.getSourceComponent())) {
+        if (Components.COORDINATOR_SPOUT.name().equals(input.getSourceComponent())) {
             tick();
         } else {
             handleCommand(input);

@@ -15,31 +15,63 @@
 
 package org.openkilda.wfm.share.hubandspoke;
 
-import static org.openkilda.wfm.share.hubandspoke.Components.STREAM_TO_BOLT_COORDINATOR;
-
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.share.hubandspoke.CoordinatorBolt.CoordinatorCommand;
 import org.openkilda.wfm.topology.utils.MessageTranslator;
 
-import org.apache.storm.task.OutputCollector;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
 /**
  * Interface that helps to define callbacks and timeouts for asynchronous operations.
  */
-interface CoordinatorClient {
+abstract class CoordinatedBolt extends AbstractBolt implements TimeoutCallback {
 
-    String COMMAND_FIELD = "command";
-    String TIMEOUT_FIELD = "timeout_ms";
+    static final String COMMAND_FIELD = "command";
+    static final String TIMEOUT_FIELD = "timeout_ms";
+
+    private final boolean autoAck;
+    private final int defaultTimeout;
+
+    CoordinatedBolt(boolean autoAck, int defaultTimeout) {
+        this.autoAck = autoAck;
+        this.defaultTimeout = defaultTimeout;
+    }
+
+    @Override
+    public void execute(Tuple input) {
+        log.debug("{} input tuple from {}:{} size {}",
+                getClass().getName(), input.getSourceComponent(), input.getSourceStreamId(), input.size());
+        try {
+            if (Components.COORDINATOR_BOLT.name().equals(input.getSourceComponent())) {
+                String key = input.getStringByField(MessageTranslator.KEY_FIELD);
+                onTimeout(key);
+            } else {
+                handleInput(input);
+            }
+        } catch (Exception e) {
+            log.error(String.format("Unhandled exception in %s", getClass().getName()), e);
+        } finally {
+            if (autoAck) {
+                getOutput().ack(input);
+            }
+        }
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        declarer.declareStream(CoordinatorBolt.INCOME_STREAM, new Fields(MessageTranslator.KEY_FIELD,
+                COMMAND_FIELD, TIMEOUT_FIELD, AbstractBolt.FIELD_ID_CONTEXT));
+    }
 
     /**
      * Should be called once operation is finished and callback/timer should be cancelled.
      * @param key request's identifier.
      */
-    default void success(String key) {
-        getOutputCollector().emit(STREAM_TO_BOLT_COORDINATOR, new Values(
+    protected void cancelCallback(String key) {
+        getOutput().emit(CoordinatorBolt.INCOME_STREAM, new Values(
                 key, CoordinatorCommand.CANCEL_CALLBACK,
                 0,
                 null
@@ -51,8 +83,8 @@ interface CoordinatorClient {
      * used.
      * @param key operation identifier.
      */
-    default void registerCallback(String key) {
-        registerCallback(key, getDefaultTimeout());
+    protected void registerCallback(String key) {
+        registerCallback(key, defaultTimeout);
     }
 
     /**
@@ -60,20 +92,11 @@ interface CoordinatorClient {
      * @param key operation identifier.
      * @param timeout how long coordinator waits for a response. If no response received - timeout error occurs.
      */
-    default void registerCallback(String key, long timeout) {
-        getOutputCollector().emit(STREAM_TO_BOLT_COORDINATOR, new Values(
+    protected void registerCallback(String key, long timeout) {
+        getOutput().emit(CoordinatorBolt.INCOME_STREAM, new Values(
                 key, CoordinatorCommand.REQUEST_CALLBACK,
                 timeout,
                 key
         ));
     }
-
-    default void declareCoordinatorStream(OutputFieldsDeclarer declarer) {
-        declarer.declareStream(STREAM_TO_BOLT_COORDINATOR, new Fields(MessageTranslator.KEY_FIELD,
-                COMMAND_FIELD, TIMEOUT_FIELD, AbstractBolt.FIELD_ID_CONTEXT));
-    }
-
-    int getDefaultTimeout();
-
-    OutputCollector getOutputCollector();
 }

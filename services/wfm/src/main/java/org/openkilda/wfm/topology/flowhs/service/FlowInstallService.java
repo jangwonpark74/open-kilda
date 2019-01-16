@@ -13,17 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.share.hubandspoke;
+package org.openkilda.wfm.topology.flowhs.service;
 
-public enum Components {
-
-    COORDINATOR_SPOUT("coordinator.spout"),
-    COORDINATOR_BOLT("coordinator.bolt"),
-    WORKER_BOLT("worker.bolt");
-
-    private String value;
-
-    Components(String value) {
-        this.value = value;
-    }
+public class FlowInstallService {
 }

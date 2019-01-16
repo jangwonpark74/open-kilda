@@ -15,15 +15,11 @@
 
 package org.openkilda.wfm.share.hubandspoke;
 
-public enum Components {
+public interface TimeoutCallback {
 
-    COORDINATOR_SPOUT("coordinator.spout"),
-    COORDINATOR_BOLT("coordinator.bolt"),
-    WORKER_BOLT("worker.bolt");
-
-    private String value;
-
-    Components(String value) {
-        this.value = value;
-    }
+    /**
+     * Handler for timeout for pending request and define the way how such case will be processed.
+     * @param key request id.
+     */
+    void onTimeout(String key);
 }

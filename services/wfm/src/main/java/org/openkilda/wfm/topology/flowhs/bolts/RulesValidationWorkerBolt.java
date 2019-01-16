@@ -13,17 +13,30 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.share.hubandspoke;
+package org.openkilda.wfm.topology.flowhs.bolts;
 
-public enum Components {
+import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
 
-    COORDINATOR_SPOUT("coordinator.spout"),
-    COORDINATOR_BOLT("coordinator.bolt"),
-    WORKER_BOLT("worker.bolt");
+import org.apache.storm.tuple.Tuple;
 
-    private String value;
+public class RulesValidationWorkerBolt extends WorkerBolt {
 
-    Components(String value) {
-        this.value = value;
+    public RulesValidationWorkerBolt(Config config) {
+        super(config);
+    }
+
+    @Override
+    protected void onHubRequest(Tuple input) {
+
+    }
+
+    @Override
+    protected void onAsyncResponse(Tuple input) {
+
+    }
+
+    @Override
+    public void onTimeout(String key) {
+
     }
 }

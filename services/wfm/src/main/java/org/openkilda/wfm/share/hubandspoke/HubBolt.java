@@ -15,51 +15,38 @@
 
 package org.openkilda.wfm.share.hubandspoke;
 
-import static org.openkilda.wfm.share.hubandspoke.Components.BOLT_COORDINATOR;
-import static org.openkilda.wfm.share.hubandspoke.Components.BOLT_WORKER_PREFIX;
+import static org.openkilda.wfm.share.hubandspoke.Components.WORKER_BOLT;
 
+import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.topology.utils.MessageTranslator;
 
 import org.apache.storm.task.OutputCollector;
-import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Tuple;
-
-import java.util.Map;
 
 /**
  * Base class for bolts performing the role of hub that interacts with multiple workers (spokes). Defines three main
  * methods: onRequest(), onWorkerResponse() and onTimeout(). Helps to handle income external requests and specify the
  * ways how worker responses and timeouts should be processed.
  */
-public abstract class HubBolt extends BaseRichBolt implements CoordinatorClient {
+public abstract class HubBolt extends CoordinatedBolt {
 
     protected transient OutputCollector collector;
 
     private final String hubSpoutComponent;
-    private final boolean autoAck;
-    private final int timeoutMs;
 
     public HubBolt(String spoutId, int timeoutMs, boolean autoAck) {
+        super(autoAck, timeoutMs);
         this.hubSpoutComponent = spoutId;
-        this.timeoutMs = timeoutMs;
-        this.autoAck = autoAck;
     }
 
     @Override
-    public void execute(Tuple input) {
-        if (autoAck) {
-            collector.ack(input);
-        }
+    protected void handleInput(Tuple input) throws AbstractException {
         if (hubSpoutComponent.equals(input.getSourceComponent())) {
             registerCallback(input.getStringByField(MessageTranslator.KEY_FIELD));
-
             onRequest(input);
-        } else if (input.getSourceComponent().startsWith(BOLT_WORKER_PREFIX)) {
+        } else if (WORKER_BOLT.name().equals(input.getSourceComponent())) {
             onWorkerResponse(input);
-        } else if (input.getSourceComponent().equals(BOLT_COORDINATOR)) {
-            onTimeout(input);
         }
     }
 
@@ -76,30 +63,9 @@ public abstract class HubBolt extends BaseRichBolt implements CoordinatorClient 
      */
     protected abstract void onWorkerResponse(Tuple input);
 
-    /**
-     * Handler for timeout for pending request and define the way how such case will be processed.
-     * @param input tuple with request id.
-     */
-    protected abstract void onTimeout(Tuple input);
-
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declareCoordinatorStream(declarer);
-    }
-
-    @Override
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        this.collector = collector;
-    }
-
-    @Override
-    public int getDefaultTimeout() {
-        return timeoutMs;
-    }
-
-    @Override
-    public OutputCollector getOutputCollector() {
-        return collector;
+        super.declareOutputFields(declarer);
     }
 
 }

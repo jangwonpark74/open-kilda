@@ -16,89 +16,63 @@
 package org.openkilda.wfm.share.hubandspoke;
 
 import static java.util.Objects.requireNonNull;
-import static org.openkilda.wfm.share.hubandspoke.Components.BOLT_COORDINATOR;
 
+import org.openkilda.wfm.error.AbstractException;
 import org.openkilda.wfm.topology.utils.MessageTranslator;
 
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.storm.task.OutputCollector;
-import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Tuple;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-public abstract class WorkerBolt extends BaseRichBolt implements CoordinatorClient {
-
-    private Config workerConfig;
-    private OutputCollector collector;
+public abstract class WorkerBolt extends CoordinatedBolt {
 
     private Map<String, Tuple> tasks = new HashMap<>();
+    private transient Config workerConfig;
 
     public WorkerBolt(Config config) {
+        super(config.isAutoAck(), config.getDefaultTimeout());
+
         requireNonNull(config.getStreamToHub(), "Stream to hub bolt cannot be null");
         requireNonNull(config.getHubComponent(), "Hub bolt id cannot be null");
         requireNonNull(config.getWorkerSpoutComponent(), "Worker's spout id cannot be null");
-
         this.workerConfig = config;
     }
 
     @Override
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        this.collector = collector;
-    }
-
-    @Override
-    public void execute(Tuple input) {
-        if (workerConfig.autoAck) {
-            collector.ack(input);
-        }
+    protected void handleInput(Tuple input) throws AbstractException {
         String key = input.getStringByField(MessageTranslator.KEY_FIELD);
         String sender = input.getSourceComponent();
 
         if (workerConfig.getHubComponent().equals(sender)) {
             tasks.put(key, input);
             registerCallback(key);
+
             onHubRequest(input);
         } else if (tasks.containsKey(key)) {
             if (workerConfig.getWorkerSpoutComponent().equals(sender)) {
-                success(key);
+                cancelCallback(key);
                 onAsyncResponse(input);
-            } else if (BOLT_COORDINATOR.equals(sender)) {
-                onTimeout(key);
             }
         } else {
             log.error("Received unexpected tuple {}", input);
         }
     }
 
-    @Override
-    public int getDefaultTimeout() {
-        return workerConfig.defaultTimeout;
-    }
-
-    @Override
-    public OutputCollector getOutputCollector() {
-        return collector;
-    }
-
-    @Override
-    public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declareStream(workerConfig.getStreamToHub(), true, MessageTranslator.FIELDS);
-
-        declareCoordinatorStream(declarer);
-    }
-
     protected abstract void onHubRequest(Tuple input);
 
     protected abstract void onAsyncResponse(Tuple input);
 
-    protected abstract void onTimeout(String key);
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        super.declareOutputFields(declarer);
+        declarer.declareStream(workerConfig.getStreamToHub(), true, MessageTranslator.FIELDS);
+    }
 
     @Builder
     @Getter

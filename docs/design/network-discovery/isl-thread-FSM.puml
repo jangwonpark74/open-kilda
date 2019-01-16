@@ -2,6 +2,10 @@ Input signals:
 * discovery
 * discovery-push
 
+Output signals:
+* isl-up
+* isl-down
+
 Data model:
 * fail-timer (timeout)
 * no-push-timer (timeout)
@@ -19,6 +23,7 @@ UP --> RENEW : discovery
 UP --> SUSPEND : no-push-timer
 UP --> PUSHED : discovery-push
 UP --> DOWN : fail-timer
+UP : enter / emit isl-up
 
 RENEW --> UP : next
 RENEW : enter / postpone fail-timer
@@ -29,6 +34,7 @@ PUSHED --> UP : next
 PUSHED : enter / postpone no-push-timer
 
 DOWN --> RENEW : discovery
+DOWN : enter / emit isl-down
 DOWN : exit / raise no-push-timer
 
 @enduml

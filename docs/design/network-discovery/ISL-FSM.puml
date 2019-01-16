@@ -7,78 +7,48 @@ Internal state:
 * B-thread-FSM
 
 Input signals:
-* A-isl-up
-* B-isl-up
-* A-isl-down
-* B-isl-down
-* A-isl-disable
-* B-isl-disable
-* A-isl-move
-* B-isl-move
-* A-isl-push-fail
-* B-isl-push-fail
-* A-push-discovery
-* B-push-discovery
-* A-sw-offline
-* B-sw-offline
-* A-sw-online
-* B-sw-online
-
-* fail-timer
-* no-discovery-timer
-* offline-fail-timer
 
 @startuml
-[*] --> SETUP
-
-SETUP --> GENERIC
-SETUP : enter / setup A-thread-FSM
-SETUP : enter / setup B-thread-FSM
+[*] --> GENERIC
 
 state GENERIC {
+    GENERIC : enter / setup A-thread-FSM
+    GENERIC : enter / setup B-thread-FSM
 
-    [*] --> IDLE
+    [*] --> EMIT
 
-    IDLE : enter / setup discovery-timer
-    IDLE --> PUSH : discovery-timer
+    EMIT --> EMIT : discovery-timer / emit discovery-push for A,B
+    EMIT : enter / setup discovery-timer
 
-    PUSH --> IDLE : next
-    PUSH : enter / emit discovery-push (A)
-    PUSH : enter / emit discovery-push (B)
-
-    ||
+    --
 
     [*] --> PROXY
 
-    PROXY --> ENDPOINT_EVENT : discovery
-    PROXY --> ENDPOINT_EVENT : discovery-push
+    PROXY --> PROXY : discovery / proxy to (A|B)-thread-FSM\ndiscovery-push proxy to (A|B)-thread-FSM
 
-    ENDPOINT_EVENT --> STATE_PERSIST : next
-    ENDPOINT_EVENT : enter / map event to thread
-    ENDPOINT_EVENT : enter / feed event into (A|B)-thread-FSM
+    --
 
-    STATE_PERSIST --> PROXY : next
-    STATE_PERSIST : enter / merge A and B threads state
-    STATE_PERSIST : enter / persist state
+    [*] --> CONSUME
+
+    CONSUME --> CONSUME : isl-up / persist state\nisl-down / persist state
 }
 
 GENERIC --> MOVED : moved
-GENERIC --> BECOME_OFFLINE : offline
+GENERIC --> OFFLINE : offline / set (A|B)-endpoint-online = false
 
 MOVED --> GENERIC : discovery
 MOVED : ENTER / persist state
 
-BECOME_OFFLINE --> OFFLINE : next
-BECOME_OFFLINE : enter / set (A|B)-endpoint-online = false
-
+OFFLINE --> OFFLINE : isl-up / persist state\nisl-down / persist state
 OFFLINE --> OFFLINE_SWITCH : online
 OFFLINE --> OFFLINE_SWITCH : offline
+
+state offlineGate <<choice>>
 
 OFFLINE_SWITCH --> offlineGate : next
 OFFLINE_SWITCH : enter / set (A|B)-endpoint-online = (true|false)
 
-state offlineGate <<choice>>
-offlineGate --> OFFLINE : any (A|B)-endpoint-online is false
-offlineGate --> GENERIC : else
+offlineGate --> OFFLINE : [!A-endpoint-online || !B-endpoint-online]
+offlineGate --> GENERIC : [A-endpoint-online && B-endpoint-online]
 
 @enduml

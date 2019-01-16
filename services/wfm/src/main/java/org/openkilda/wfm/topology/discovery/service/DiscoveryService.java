@@ -18,7 +18,6 @@ package org.openkilda.wfm.topology.discovery.service;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.messaging.info.event.SwitchInfoData;
-import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.messaging.model.SpeakerSwitchView;
 import org.openkilda.model.Isl;
 import org.openkilda.model.Switch;

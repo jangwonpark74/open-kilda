@@ -1,56 +1,36 @@
 @startuml
-[*] --> INIT
+[*] -down-> INIT
 
 state switchSync <<choice>>
 
-INIT --> prepopulate : HISTORY
-INIT --> setup : managed
-INIT --> setup : online
-INIT --> offline : offline
+INIT --> PREPOPULATE : history
+INIT --> SETUP : managed
+INIT --> SETUP : online
 
-prepopulate : enter / fill port-list
-prepopulate : enter / setup port workers
-prepopulate : enter / setup ISL workers
-prepopulate --> INIT : next
+PREPOPULATE : enter / fill port-list
+PREPOPULATE : enter / setup port workers
+PREPOPULATE : enter / setup ISL workers
+PREPOPULATE -> SETUP : managed
+PREPOPULATE --> OFFLINE : offline
 
-switchSync --> setup : is-online
-switchSync --> offline : is-offline
+switchSync -> SETUP : [is-online]
+switchSync -> OFFLINE : [is-offline]
 
-setup : enter / [setup portWorker for portsAdded()]
-setup : enter / [emit online for portAll()]
-setup : enter / [emit port-del for portsRemoved()]
-setup : enter / [emit port-down for portsBecomeDown()]
-setup : enter / [emit port-up for portsBecomeUp()]
-setup --> online : next
+SETUP : enter / [setup portWorker for portsAdded()]
+SETUP : enter / [emit online for portAll()]
+SETUP : enter / [emit port-del for portsRemoved()]
+SETUP : enter / [emit port-down for portsBecomeDown()]
+SETUP : enter / [emit port-up for portsBecomeUp()]
+SETUP --> ONLINE : next
 
-state online {
-    [*] --> ONLINE_PENDING
-    
-    ONLINE_PENDING --> PORT_ADD : port-add
-    ONLINE_PENDING --> PORT_DEL : port-del
-    ONLINE_PENDING --> PORT_PROXY : port-up
-    ONLINE_PENDING --> PORT_PROXY : port-down
-    ONLINE_PENDING --> ISL_PROXY : discovery
+ONLINE -> ONLINE : port-add / setup port worker\nport-del / kill port worker\nport-up / proxy\nport-down / proxy\ndiscovery / proxy
+ONLINE -> OFFLINE : offline
+ONLINE --> UNMANAGED : unmanaged
 
-    PORT_ADD : enter / add port to port-list
-    PORT_ADD : enter / setup port worker
-    PORT_ADD --> ONLINE_PENDING : next
-    
-    PORT_DEL : enter / kill port worker
-    PORT_DEL : enter / remove port from port-list
-    PORT_DEL --> ONLINE_PENDING : next
+OFFLINE : enter / [emit offline for portAll()]
+OFFLINE --> SETUP : online
 
-    PORT_PROXY --> ONLINE_PENDING : next
-    ISL_PROXY --> ONLINE_PENDING : next
-}
-online --> offline : offline
-online --> unmanaged : unmanaged
-
-offline : enter / [emit offline for portAll()]
-offline --> setup : online
-
-unmanaged : enter / emit port-unmanaged [all ports]
-unmanaged : exit / emit port-managed [all ports]
-unmanaged --> switchSync : managed
-
+UNMANAGED : enter / emit port-UNMANAGED [all ports]
+UNMANAGED : exit / emit port-managed [all ports]
+UNMANAGED -> switchSync : managed
 @enduml

@@ -1,0 +1,90 @@
+Internal state:
+* endpoint-A
+* endpoint-B
+* A-endpoint-online
+* B-endpoint-online
+* A-thread-FSM
+* B-thread-FSM
+* discovery-push generator
+* thread-FSM proxy
+
+Input signals:
+* online
+* offline
+* physical-down
+* discovery
+* discovery-pushed
+* isl-up (from isl-thread-FSM)
+* isl-down (from isl-thread-FSM)
+
+@startuml
+[*] --> INIT
+
+INIT --> OFFLINE : next
+INIT : enter / setup A-thread-FSM
+INIT : enter / setup B-thread-FSM
+INIT : enter / setup discovery-push generator
+INIT : enter / setup thread-FSM proxy
+
+OPERATIONAL --> MOVED : moved
+OPERATIONAL --> OFFLINE : offline / set (A|B)-endpoint-online = false
+OPERATIONAL --> OFFLINE : physical-down / set (A|B)-endpoint-online = false\npersist DOWN state\ndrop A-thread-FSM\ndrop B-thread-FSM
+state OPERATIONAL {
+    state basicUpChoice <<choice>>
+    state bfdCapabilityChoice <<choice>>
+
+    [*] --> BASIC_SETUP
+
+    BASIC_SETUP --> BASIC : next
+    BASIC_SETUP : enter / setup A-thread-FSM
+    BASIC_SETUP : enter / setup B-thread-FSM
+    BASIC_SETUP : enter / setup discovery-push generator
+    BASIC_SETUP : enter / setup thread-FSM proxy
+
+    BASIC --> basicUpChoice : isl-up / persist state\nisl-down / persist state
+
+    basicUpChoice -u-> BASIC : [status is not UP]
+    basicUpChoice --> bfdCapabilityChoice : [status is UP]
+
+    bfdCapabilityChoice --> BASIC_FALLBACK : [not capable]
+    bfdCapabilityChoice --> BFD_FORWARD_SETUP : [capable]
+
+    BASIC_FALLBACK --> BASIC_FALLBACK : isl-up / persist state\nisl-down / persist state
+
+    BFD_FORWARD_SETUP --> BASIC : isl-down
+    BFD_FORWARD_SETUP --> BFD_REVERSE_SETUP : bfd-session-ok
+    BFD_FORWARD_SETUP --> BASIC_FALLBACK : bfd-session-fail
+    BFD_FORWARD_SETUP : enter / emit BFD forward session setup
+
+    BFD_REVERSE_SETUP --> BASIC : isl-down
+    BFD_REVERSE_SETUP --> BFD : bfd-session-ok
+    BFD_REVERSE_SETUP --> BASIC_FALLBACK : bfd-session-fail
+    BFD_REVERSE_SETUP : enter / emit BFD reverse session setup
+
+    BFD --> BFD : isl-up / persist state\nisl-down / persist state
+    BFD : enter / disable discovery-push generator
+    BFD : enter / disable thread-FSM proxy
+    BFD : enter / kill A-thread-FSM
+    BFD : enter / kill B-thread-FSM
+    BFD : exit / setup A-thread-FSM
+    BFD : exit / setup B-thread-FSM
+    BFD : exit / enable thread-FSM proxy
+    BFD : exit / enable discovery-push generator
+}
+
+MOVED --> OPERATIONAL : discovery
+MOVED : ENTER / persist MOVED state
+
+OFFLINE --> OFFLINE : isl-up / persist state\nisl-down / persist state
+OFFLINE --> OFFLINE_SWITCH : online
+OFFLINE --> OFFLINE_SWITCH : offline
+
+state offlineGate <<choice>>
+
+OFFLINE_SWITCH --> offlineGate : next
+OFFLINE_SWITCH : enter / set (A|B)-endpoint-online = (true|false)
+
+offlineGate --> OFFLINE : [!A-endpoint-online || !B-endpoint-online]
+offlineGate --> OPERATIONAL : [A-endpoint-online && B-endpoint-online]
+
+@enduml

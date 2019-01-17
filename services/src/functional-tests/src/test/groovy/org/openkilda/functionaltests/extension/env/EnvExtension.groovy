@@ -1,4 +1,4 @@
-package org.openkilda.functionaltests.extension.virtualenv
+package org.openkilda.functionaltests.extension.env
 
 import static org.openkilda.testing.Constants.SWITCHES_ACTIVATION_TIME
 import static org.openkilda.testing.Constants.TOPOLOGY_DISCOVERING_TIME
@@ -21,10 +21,10 @@ import org.springframework.context.ApplicationContext
  * This extension is responsible for creating a virtual topology at the start of the test run.
  */
 @Slf4j
-class VirtualEnvExtension extends AbstractGlobalExtension implements SpringContextListener {
+class EnvExtension extends AbstractGlobalExtension implements SpringContextListener {
 
     @Autowired
-    TopologyDefinition topologyDefinition
+    TopologyDefinition topology
 
     @Autowired
     NorthboundService northbound
@@ -39,10 +39,13 @@ class VirtualEnvExtension extends AbstractGlobalExtension implements SpringConte
 
     @Override
     void notifyContextInitialized(ApplicationContext applicationContext) {
+        applicationContext.autowireCapableBeanFactory.autowireBean(this)
         if (applicationContext.environment.getActiveProfiles().contains("virtual")) {
-            applicationContext.autowireCapableBeanFactory.autowireBean(this)
             buildVirtualEnvironment()
             log.info("Virtual topology successfully created")
+        } else if(applicationContext.environment.getActiveProfiles().contains("hardware")) {
+            labService.createHwLab(topology)
+            log.info("Successfully pointed to a hardware topology")
         }
     }
 
@@ -57,19 +60,19 @@ class VirtualEnvExtension extends AbstractGlobalExtension implements SpringConte
         northbound.toggleFeature(features)
 
         labService.flushLabs()
-        labService.getLab()
+        labService.createLab(topology)
 
         //wait until topology is discovered
         Wrappers.wait(TOPOLOGY_DISCOVERING_TIME) {
             assert northbound.getAllLinks().findAll {
                 it.state == IslChangeType.DISCOVERED
-            }.size() == topologyDefinition.islsForActiveSwitches.size() * 2
+            }.size() == topology.islsForActiveSwitches.size() * 2
         }
         //wait until switches are activated
         Wrappers.wait(SWITCHES_ACTIVATION_TIME) {
             assert northbound.getAllSwitches().findAll {
                 it.state == SwitchChangeType.ACTIVATED
-            }.size() == topologyDefinition.activeSwitches.size()
+            }.size() == topology.activeSwitches.size()
         }
     }
 }

@@ -5,8 +5,17 @@ Internal state:
 * B-endpoint-online
 * A-thread-FSM
 * B-thread-FSM
+* discovery-push generator
+* thread-FSM proxy
 
 Input signals:
+* online
+* offline
+* physical-down
+* discovery
+* discovery-pushed
+* isl-up (from isl-thread-FSM)
+* isl-down (from isl-thread-FSM)
 
 @startuml
 [*] --> INIT
@@ -14,34 +23,20 @@ Input signals:
 INIT --> OFFLINE : next
 INIT : enter / setup A-thread-FSM
 INIT : enter / setup B-thread-FSM
+INIT : enter / setup discovery-push generator
+INIT : enter / setup thread-FSM proxy
 
-state GENERIC {
-    GENERIC : enter / setup A-thread-FSM
-    GENERIC : enter / setup B-thread-FSM
+BASIC --> MOVED : moved
+BASIC --> OFFLINE : offline / set (A|B)-endpoint-online = false
+BASIC --> OFFLINE : physical-down / set (A|B)-endpoint-online = false\npersist DOWN state\ndrop A-thread-FSM\ndrop B-thread-FSM
+BASIC --> BASIC : isl-up / persist state\nisl-down / persist state
+BASIC : enter / setup A-thread-FSM
+BASIC : enter / setup B-thread-FSM
+BASIC : enter / setup discovery-push generator
+BASIC : enter / setup thread-FSM proxy
 
-    [*] --> EMIT
-
-    EMIT --> EMIT : discovery-timer / emit discovery-push for A,B
-    EMIT : enter / setup discovery-timer
-
-    --
-
-    [*] --> PROXY
-
-    PROXY --> PROXY : discovery / proxy to (A|B)-thread-FSM\ndiscovery-push proxy to (A|B)-thread-FSM
-
-    --
-
-    [*] --> CONSUME
-
-    CONSUME --> CONSUME : isl-up / persist state\nisl-down / persist state
-}
-
-GENERIC --> MOVED : moved
-GENERIC --> OFFLINE : offline / set (A|B)-endpoint-online = false
-
-MOVED --> GENERIC : discovery
-MOVED : ENTER / persist state
+MOVED --> BASIC : discovery
+MOVED : ENTER / persist MOVED state
 
 OFFLINE --> OFFLINE : isl-up / persist state\nisl-down / persist state
 OFFLINE --> OFFLINE_SWITCH : online
@@ -53,6 +48,6 @@ OFFLINE_SWITCH --> offlineGate : next
 OFFLINE_SWITCH : enter / set (A|B)-endpoint-online = (true|false)
 
 offlineGate --> OFFLINE : [!A-endpoint-online || !B-endpoint-online]
-offlineGate --> GENERIC : [A-endpoint-online && B-endpoint-online]
+offlineGate --> BASIC : [A-endpoint-online && B-endpoint-online]
 
 @enduml

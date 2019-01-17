@@ -42,19 +42,23 @@ state OPERATIONAL {
     UNKNOWN --> DOWN : port-down
     UNKNOWN --> discoveredChoice : port-up
 
-    UP -u-> DOWN : port-down
-    UP --> UP : discovery-timer / emit discovery-push
-    UP --> movedChoice : discovery / set remote
-    UP : enter / raise discovery-timer
-
     DOWN --> discoveredChoice : port-up
     DOWN : enter / emit physical-down
 
     discoveredChoice --> UP : [remote is unset]
-    discoveredChoice --> DISCOVERED : [remote is set]
+    discoveredChoice --> EXPECT_DISCOVERY : [remote is set]
+
+    UP --> DOWN : port-down
+    UP --> UP : discovery-timer / emit discovery-push
+    UP --> movedChoice : discovery / set remote
+    UP : enter / raise discovery-timer
+
+    EXPECT_DISCOVERY --> movedChoice : discovery
+    EXPECT_DISCOVERY --> DOWN : port-down
+    EXPECT_DISCOVERY --> EXPECT_DISCOVERY : discovery-pushed / emit discovery-pushed
 
     movedChoice --> DISCOVERED : [remote not changed]
-    movedChoice -> DISCOVERED : [remote changed] / emit isl-move,\nrecord remote,\nemit isl-setup
+    movedChoice --> DISCOVERED : [remote changed] / emit isl-move,\nrecord remote,\nemit isl-setup
 
     DISCOVERED --> movedChoice : discovery
     DISCOVERED --> DISCOVERED : discovery-pushed / emit discovery-pushed

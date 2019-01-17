@@ -37,6 +37,7 @@ import org.openkilda.wfm.topology.discovery.controller.SwitchFsmEvent;
 import org.openkilda.wfm.topology.discovery.controller.SwitchFsmState;
 import org.openkilda.wfm.topology.discovery.model.Endpoint;
 import org.openkilda.wfm.topology.discovery.model.IslFacts;
+import org.openkilda.wfm.topology.discovery.model.IslReference;
 import org.openkilda.wfm.topology.discovery.model.OperationMode;
 import org.openkilda.wfm.topology.discovery.model.PortFacts;
 import org.openkilda.wfm.topology.discovery.model.SpeakerSharedSync;
@@ -141,7 +142,8 @@ public class DiscoveryService {
         SwitchFsmContext fsmContext = new SwitchFsmContext(outputAdapter);
         fsmContext.setIslFacts(islFacts);
 
-        SwitchFsm switchFsm = locateSwitchFsm(islFacts.getDest().getDatapath());
+        IslReference reference = islFacts.getReference();
+        SwitchFsm switchFsm = locateSwitchFsm(reference.getDest().getDatapath());
         switchControllerExecutor.fire(switchFsm, SwitchFsmEvent.ISL_DISCOVERY, fsmContext);
     }
 

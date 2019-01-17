@@ -9,7 +9,11 @@ Internal state:
 Input signals:
 
 @startuml
-[*] --> GENERIC
+[*] --> INIT
+
+INIT --> OFFLINE : next
+INIT : enter / setup A-thread-FSM
+INIT : enter / setup B-thread-FSM
 
 state GENERIC {
     GENERIC : enter / setup A-thread-FSM

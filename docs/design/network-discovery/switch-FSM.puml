@@ -30,7 +30,6 @@ ONLINE --> UNMANAGED : unmanaged
 OFFLINE : enter / [emit offline for portAll()]
 OFFLINE --> SETUP : online
 
-UNMANAGED : enter / emit port-UNMANAGED [all ports]
-UNMANAGED : exit / emit port-managed [all ports]
+UNMANAGED : enter / emit offline [all ports]
 UNMANAGED -> switchSync : managed
 @enduml

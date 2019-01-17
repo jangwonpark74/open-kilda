@@ -35,6 +35,7 @@ state OPERATIONAL {
     OPERATIONAL : enter / emit online
 
     state discoveredChoice <<choice>>
+    state movedChoice <<choice>>
 
     [*] --> UNKNOWN
 
@@ -43,7 +44,7 @@ state OPERATIONAL {
 
     UP -u-> DOWN : port-down
     UP --> UP : discovery-timer / emit discovery-push
-    UP --> DISCOVERED : discovery / set remote
+    UP --> movedChoice : discovery / set remote
     UP : enter / raise discovery-timer
 
     DOWN --> discoveredChoice : port-up
@@ -52,30 +53,13 @@ state OPERATIONAL {
     discoveredChoice --> UP : [remote is unset]
     discoveredChoice --> DISCOVERED : [remote is set]
 
-    state DISCOVERED {
-        state entryChoice <<choice>>
-        state movedChoice <<choice>>
+    movedChoice --> DISCOVERED : [remote not changed]
+    movedChoice -> DISCOVERED : [remote changed] / emit isl-move,\nrecord remote,\nemit isl-setup
 
-        [*] --> entryChoice
-
-        entryChoice -> movedChoice : [is discovery]
-        entryChoice --> MAIN : [is not discovery]
-        
-        movedChoice --> CONFIRM_DISCOVERY : [remote not changed]
-        movedChoice -> MOVED : [remote changed]
-
-        MAIN -> movedChoice : discovery
-        MAIN --> MAIN : discovery-pushed / emit discovery-pushed
-
-        MOVED --> CONFIRM_DISCOVERY : next
-        MOVED : enter / emit isl-move
-        MOVED : enter / record remote
-        MOVED : enter / emit isl-setup
-
-        CONFIRM_DISCOVERY --> MAIN : next
-        CONFIRM_DISCOVERY : enter / emit discovery
-    }
+    DISCOVERED --> movedChoice : discovery
+    DISCOVERED --> DISCOVERED : discovery-pushed / emit discovery-pushed
     DISCOVERED --> DOWN : port-down
+    DISCOVERED : enter / emit discovery
 }
 
 OPERATIONAL --> UNOPERATIONAL : offline
